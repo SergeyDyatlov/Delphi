@@ -4,17 +4,18 @@ interface
 
 uses
   Winapi.Windows, System.SysUtils, System.Classes, System.Generics.Collections,
-  TmxTileset, TmxLayer, TmxObjectGroup, Xml.XMLIntf, XMLDoc, Vcl.Graphics;
+  TmxTileset, TmxTileLayer, TmxObjectGroup, Xml.XMLIntf, XMLDoc, Vcl.Graphics;
 
 type
   TTmxMap = class
   private
+    FFilePath: string;
     FWidth: Integer;
     FHeight: Integer;
     FTileWidth: Integer;
     FTileHeight: Integer;
-    FTilesets: TObjectList<TTmxTileset>;
-    FLayers: TObjectList<TTmxLayer>;
+    FTilesets: TObjectDictionary<Integer, TTmxTileset>;
+    FTileLayers: TObjectList<TTmxTileLayer>;
     FObjectGroups: TObjectList<TTmxObjectGroup>;
     FBackgroundColor: TColor;
     procedure ParseXML(const Node: IXMLNode);
@@ -22,15 +23,18 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Load(const FileName: string);
-    function GetLayerByName(const Name: string): TTmxLayer;
+    function GetLayerByName(const Name: string): TTmxTileLayer;
+    property FilePath: string read FFilePath write FFilePath;
     property Width: Integer read FWidth write FWidth;
     property Height: Integer read FHeight write FHeight;
     property TileWidth: Integer read FTileWidth write FTileWidth;
     property TileHeight: Integer read FTileHeight write FTileHeight;
     property BackgroundColor: TColor read FBackgroundColor
       write FBackgroundColor;
-    property Tilesets: TObjectList<TTmxTileset> read FTilesets write FTilesets;
-    property Layers: TObjectList<TTmxLayer> read FLayers write FLayers;
+    property Tilesets: TObjectDictionary<Integer, TTmxTileset> read FTilesets
+      write FTilesets;
+    property TileLayers: TObjectList<TTmxTileLayer> read FTileLayers
+      write FTileLayers;
     property ObjectGroups: TObjectList<TTmxObjectGroup> read FObjectGroups
       write FObjectGroups;
   end;
@@ -44,8 +48,8 @@ uses
 
 constructor TTmxMap.Create;
 begin
-  FTilesets := TObjectList<TTmxTileset>.Create(True);
-  FLayers := TObjectList<TTmxLayer>.Create(True);
+  FTilesets := TObjectDictionary<Integer, TTmxTileset>.Create([doOwnsValues]);
+  FTileLayers := TObjectList<TTmxTileLayer>.Create(True);
   FObjectGroups := TObjectList<TTmxObjectGroup>.Create(True);
   FBackgroundColor := clBlack;
 end;
@@ -53,17 +57,17 @@ end;
 destructor TTmxMap.Destroy;
 begin
   FObjectGroups.Free;
-  FLayers.Free;
+  FTileLayers.Free;
   FTilesets.Free;
   inherited;
 end;
 
-function TTmxMap.GetLayerByName(const Name: string): TTmxLayer;
+function TTmxMap.GetLayerByName(const Name: string): TTmxTileLayer;
 var
-  Layer: TTmxLayer;
+  Layer: TTmxTileLayer;
 begin
   Result := nil;
-  for Layer in Layers do
+  for Layer in TileLayers do
   begin
     if AnsiSameText(Layer.Name, Name) then
       Exit(Layer);
@@ -75,6 +79,7 @@ var
   Document: IXMLDocument;
   Node: IXMLNode;
 begin
+  FFilePath := ExtractFilePath(FileName);
   Document := TXMLDocument.Create(nil);
   try
     Document.LoadFromFile(FileName);
@@ -89,10 +94,9 @@ procedure TTmxMap.ParseXML(const Node: IXMLNode);
 var
   ChildNode: IXMLNode;
   Tileset: TTmxTileset;
-  Layer: TTmxLayer;
+  Layer: TTmxTileLayer;
   ObjectGroup: TTmxObjectGroup;
   Value: string;
-  R, G, B: Integer;
 begin
   FWidth := Node.Attributes['width'];
   FHeight := Node.Attributes['height'];
@@ -110,15 +114,15 @@ begin
   begin
     if SameText(ChildNode.NodeName, 'tileset') then
     begin
-      Tileset := TTmxTileset.Create;
+      Tileset := TTmxTileset.Create(FFilePath);
       Tileset.ParseXML(ChildNode);
-      FTilesets.Add(Tileset);
+      FTilesets.Add(Tileset.FirstGid, Tileset);
     end
     else if SameText(ChildNode.NodeName, 'layer') then
     begin
-      Layer := TTmxLayer.Create;
+      Layer := TTmxTileLayer.Create;
       Layer.ParseXML(ChildNode);
-      FLayers.Add(Layer);
+      FTileLayers.Add(Layer);
     end
     else if SameText(ChildNode.NodeName, 'objectgroup') then
     begin

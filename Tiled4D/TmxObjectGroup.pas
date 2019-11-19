@@ -3,7 +3,7 @@ unit TmxObjectGroup;
 interface
 
 uses
-  System.Generics.Collections, Xml.XMLIntf;
+  System.Generics.Collections, Xml.XMLIntf, TmxLayer;
 
 const
   FLIPPED_HORIZONTALLY_FLAG = $80000000;
@@ -38,20 +38,23 @@ type
       write FFlippedDiagonaly;
   end;
 
-  TTmxObjectGroup = class
+  TTmxObjectGroup = class(TTmxLayer)
   private
     FObjects: TObjectList<TTmxObject>;
+    function GetObject(Index: Integer): TTmxObject;
+    function GetObjectCount: Integer;
   public
     constructor Create;
     destructor Destroy; override;
     procedure ParseXML(const Node: IXMLNode);
-    property Objects: TObjectList<TTmxObject> read FObjects write FObjects;
+    property Objects[Index: Integer]: TTmxObject read GetObject;
+    property ObjectCount: Integer read GetObjectCount;
   end;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, Vcl.Dialogs;
 
 { TTmxObjectGroup }
 
@@ -66,6 +69,16 @@ begin
   inherited;
 end;
 
+function TTmxObjectGroup.GetObject(Index: Integer): TTmxObject;
+begin
+  Result := FObjects[Index];
+end;
+
+function TTmxObjectGroup.GetObjectCount: Integer;
+begin
+  Result := FObjects.Count;
+end;
+
 procedure TTmxObjectGroup.ParseXML(const Node: IXMLNode);
 var
   ChildNode: IXMLNode;
@@ -74,9 +87,12 @@ begin
   ChildNode := Node.ChildNodes.First;
   while Assigned(ChildNode) do
   begin
-    Obj := TTmxObject.Create;
-    Obj.ParseXML(ChildNode);
-    FObjects.Add(Obj);
+    if SameText(ChildNode.NodeName, 'object') then
+    begin
+      Obj := TTmxObject.Create;
+      Obj.ParseXML(ChildNode);
+      FObjects.Add(Obj);
+    end;
 
     ChildNode := ChildNode.NextSibling;
   end;
@@ -112,10 +128,17 @@ begin
   FX := StrToFloat(Value, FS);
   Value := Node.Attributes['y'];
   FY := StrToFloat(Value, FS);
-  Value := Node.Attributes['width'];
-  FWidth := StrToFloat(Value, FS);
-  Value := Node.Attributes['height'];
-  FHeight := StrToFloat(Value, FS);
+
+  if Node.HasAttribute('width') then
+  begin
+    Value := Node.Attributes['width'];
+    FWidth := StrToFloat(Value, FS);
+  end;
+  if Node.HasAttribute('height') then
+  begin
+    Value := Node.Attributes['height'];
+    FHeight := StrToFloat(Value, FS);
+  end;
 end;
 
 end.

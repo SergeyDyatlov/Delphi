@@ -26,12 +26,12 @@ end;
 function GetTilesetByGid(Map: TTmxMap; Gid: Integer): TTmxTileset;
 var
   Tileset: TTmxTileset;
-  I: Integer;
+  Key: Integer;
 begin
   Result := nil;
-  for I := Map.Tilesets.Count - 1 downto 0 do
+  for Key in Map.Tilesets.Keys do
   begin
-    Tileset := Map.Tilesets[I];
+    Tileset := Map.Tilesets[Key];
     if Tileset.FirstGid <= Gid then
       Exit(Tileset);
   end;
