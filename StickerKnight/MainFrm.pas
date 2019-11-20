@@ -68,32 +68,22 @@ end;
 
 procedure TMainForm.DrawTileLayer(TileLayer: TTmxTileLayer);
 var
-  I, Y, X: Integer;
-  Layer: TTmxTileLayer;
+  Y, X: Integer;
   Gid: Integer;
-  Tileset: TTmxTileset;
   Position: TPoint;
-  TileId: Integer;
 begin
   for Y := 0 to FMap.Height - 1 do
   begin
     for X := 0 to FMap.Width - 1 do
     begin
-      for I := 0 to FMap.TileLayers.Count - 1 do
-      begin
-        Layer := FMap.TileLayers[I];
-        if not Layer.Visible or (Layer.Data[Y, X] = 0) then
-          Continue;
+      if (TileLayer.Data[Y, X] = 0) then
+        Continue;
 
-        Gid := Layer.Data[Y, X];
-        if TileId >= 0 then
-        begin
-          Position := TPoint.Create(X * FMap.TileHeight, Y * FMap.TileHeight);
-          Position := PosToIso(Position);
-          Position.Offset(FMap.Width * FMap.TileHeight, 0);
-          FBuffer.Canvas.Draw(Position.X, Position.Y, FTextures[Gid]);
-        end;
-      end;
+      Gid := TileLayer.Data[Y, X];
+      Position := TPoint.Create(X * FMap.TileHeight, Y * FMap.TileHeight);
+      Position := PosToIso(Position);
+      Position.Offset(FMap.Width * FMap.TileHeight, 0);
+      FBuffer.Canvas.Draw(Position.X, Position.Y, FTextures[Gid]);
     end;
   end;
 end;
@@ -132,8 +122,7 @@ begin
 
   FMap := TTmxMap.Create;
   FMap.Load('map\sandbox2.tmx');
-//  FMap.Load('tmx\objects.tmx');
-//  FMap.Load('maps\cave\abandoned_mine.tmx');
+  // FMap.Load('maps\cave\abandoned_mine.tmx');
 
   FTextures := TObjectDictionary<Integer, TPngImage>.Create([doOwnsValues]);
 
@@ -189,7 +178,10 @@ begin
   FBuffer.Canvas.FillRect(ClientRect);
 
   for TileLayer in FMap.TileLayers do
-    DrawTileLayer(TileLayer);
+  begin
+    if TileLayer.Visible then
+      DrawTileLayer(TileLayer);
+  end;
 
   for ObjectGroup in FMap.ObjectGroups do
     DrawObjectGroup(ObjectGroup);
