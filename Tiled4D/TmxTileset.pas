@@ -4,11 +4,9 @@ interface
 
 uses
   System.SysUtils, Vcl.Graphics, PngImage, System.Generics.Collections,
-  Xml.XMLIntf;
+  Xml.XMLIntf, TmxTypes;
 
 type
-  ETmxError = class(Exception);
-
   TTmxImage = class
   private
     FSource: string;

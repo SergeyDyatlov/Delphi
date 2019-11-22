@@ -82,7 +82,7 @@ begin
       Gid := TileLayer.Data[Y, X];
       Position := TPoint.Create(X * FMap.TileHeight, Y * FMap.TileHeight);
       Position := PosToIso(Position);
-      Position.Offset(FMap.Width * FMap.TileHeight, 0);
+      Position.Offset(FMap.Width * FMap.TileHeight div 2, 0);
       FBuffer.Canvas.Draw(Position.X, Position.Y, FTextures[Gid]);
     end;
   end;
@@ -123,6 +123,8 @@ begin
   FMap := TTmxMap.Create;
   FMap.Load('map\sandbox2.tmx');
   // FMap.Load('maps\cave\abandoned_mine.tmx');
+  // FMap.Load('examples\sewers.tmx');
+  // FMap.Load('testdata\minimalist.tmx');
 
   FTextures := TObjectDictionary<Integer, TPngImage>.Create([doOwnsValues]);
 
@@ -154,10 +156,12 @@ begin
     for TileId in Tileset.Tiles.Keys do
     begin
       Tile := Tileset.Tiles[TileId];
-
-      Image := TPngImage.Create;
-      Image.LoadFromFile(Tile.Image.Source);
-      FTextures.Add(TileId, Image);
+      if not Tile.Image.Source.IsEmpty then
+      begin
+        Image := TPngImage.Create;
+        Image.LoadFromFile(Tile.Image.Source);
+        FTextures.Add(TileId, Image);
+      end;
     end;
   end;
 end;
