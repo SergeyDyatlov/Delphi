@@ -3,63 +3,47 @@ unit TmxObjectGroup;
 interface
 
 uses
-  System.Generics.Collections, Xml.XMLIntf, TmxLayer;
-
-const
-  FLIPPED_HORIZONTALLY_FLAG = $80000000;
-  FLIPPED_VERTICALLY_FLAG = $40000000;
-  FLIPPED_DIAGONALLY_FLAG = $20000000;
+  TmxLayer, System.Generics.Collections;
 
 type
   TTmxObject = class
   private
     FId: Integer;
-    FGid: Integer;
-    FX: Double;
-    FY: Double;
-    FWidth: Double;
-    FHeight: Double;
-    FFlippedHorizontaly: Boolean;
-    FFlippedVerticaly: Boolean;
-    FFlippedDiagonaly: Boolean;
+    FName: string;
+    FObjectType: string;
+    FX: Integer;
+    FY: Integer;
+    FWidth: Integer;
+    FHeight: Integer;
   public
-    procedure ParseXML(const Node: IXMLNode);
     property Id: Integer read FId write FId;
-    property Gid: Integer read FGid write FGid;
-    property X: Double read FX write FX;
-    property Y: Double read FY write FY;
-    property Width: Double read FWidth write FWidth;
-    property Height: Double read FHeight write FHeight;
-    property FlippedHorizontaly: Boolean read FFlippedHorizontaly
-      write FFlippedHorizontaly;
-    property FlippedVerticaly: Boolean read FFlippedVerticaly
-      write FFlippedVerticaly;
-    property FlippedDiagonaly: Boolean read FFlippedDiagonaly
-      write FFlippedDiagonaly;
+    property Name: string read FName write FName;
+    property ObjectType: string read FObjectType write FObjectType;
+    property X: Integer read FX write FX;
+    property Y: Integer read FY write FY;
+    property Width: Integer read FWidth write FWidth;
+    property Height: Integer read FHeight write FHeight;
   end;
 
   TTmxObjectGroup = class(TTmxLayer)
   private
     FObjects: TObjectList<TTmxObject>;
-    function GetObject(Index: Integer): TTmxObject;
-    function GetObjectCount: Integer;
+    FName: string;
   public
-    constructor Create;
+    constructor Create(const AName: string);
     destructor Destroy; override;
-    procedure ParseXML(const Node: IXMLNode);
-    property Objects[Index: Integer]: TTmxObject read GetObject;
-    property ObjectCount: Integer read GetObjectCount;
+    property Name: string read FName write FName;
+    property Objects: TObjectList<TTmxObject> read FObjects;
   end;
 
 implementation
 
-uses
-  System.SysUtils, Vcl.Dialogs;
-
 { TTmxObjectGroup }
 
-constructor TTmxObjectGroup.Create;
+constructor TTmxObjectGroup.Create(const AName: string);
 begin
+  inherited;
+  LayerType := ltObjectGroup;
   FObjects := TObjectList<TTmxObject>.Create(True);
 end;
 
@@ -67,78 +51,6 @@ destructor TTmxObjectGroup.Destroy;
 begin
   FObjects.Free;
   inherited;
-end;
-
-function TTmxObjectGroup.GetObject(Index: Integer): TTmxObject;
-begin
-  Result := FObjects[Index];
-end;
-
-function TTmxObjectGroup.GetObjectCount: Integer;
-begin
-  Result := FObjects.Count;
-end;
-
-procedure TTmxObjectGroup.ParseXML(const Node: IXMLNode);
-var
-  ChildNode: IXMLNode;
-  Obj: TTmxObject;
-begin
-  ChildNode := Node.ChildNodes.First;
-  while Assigned(ChildNode) do
-  begin
-    if SameText(ChildNode.NodeName, 'object') then
-    begin
-      Obj := TTmxObject.Create;
-      Obj.ParseXML(ChildNode);
-      FObjects.Add(Obj);
-    end;
-
-    ChildNode := ChildNode.NextSibling;
-  end;
-end;
-
-{ TTmxObject }
-
-procedure TTmxObject.ParseXML(const Node: IXMLNode);
-var
-  Value: string;
-  RawGid: Int64;
-  FS: TFormatSettings;
-begin
-  if Node.HasAttribute('id') then
-    FId := Node.Attributes['id'];
-
-  if Node.HasAttribute('gid') then
-  begin
-    Value := Node.Attributes['gid'];
-    RawGid := StrToInt64(Value);
-
-    FFlippedHorizontaly := (RawGid and FLIPPED_HORIZONTALLY_FLAG) <> 0;
-    FFlippedVerticaly := (RawGid and FLIPPED_VERTICALLY_FLAG) <> 0;
-    FFlippedDiagonaly := (RawGid and FLIPPED_DIAGONALLY_FLAG) <> 0;
-
-    FGid := RawGid and not(FLIPPED_HORIZONTALLY_FLAG or
-      FLIPPED_VERTICALLY_FLAG or FLIPPED_DIAGONALLY_FLAG);
-  end;
-
-  FS := TFormatSettings.Create;
-  FS.DecimalSeparator := '.';
-  Value := Node.Attributes['x'];
-  FX := StrToFloat(Value, FS);
-  Value := Node.Attributes['y'];
-  FY := StrToFloat(Value, FS);
-
-  if Node.HasAttribute('width') then
-  begin
-    Value := Node.Attributes['width'];
-    FWidth := StrToFloat(Value, FS);
-  end;
-  if Node.HasAttribute('height') then
-  begin
-    Value := Node.Attributes['height'];
-    FHeight := StrToFloat(Value, FS);
-  end;
 end;
 
 end.

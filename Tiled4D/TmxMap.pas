@@ -3,133 +3,293 @@ unit TmxMap;
 interface
 
 uses
-  Winapi.Windows, System.SysUtils, System.Classes, System.Generics.Collections,
-  TmxTileset, TmxTileLayer, TmxObjectGroup, Xml.XMLIntf, XMLDoc, Vcl.Graphics;
+  Xml.XMLIntf, XMLDoc, TmxLayer, TmxTileLayer, TmxTileset, System.Generics.Collections,
+  TmxObjectGroup;
 
 type
   TTmxMap = class
   private
-    FFilePath: string;
     FWidth: Integer;
     FHeight: Integer;
     FTileWidth: Integer;
     FTileHeight: Integer;
     FTilesets: TObjectDictionary<Integer, TTmxTileset>;
-    FTileLayers: TObjectList<TTmxTileLayer>;
-    FObjectGroups: TObjectList<TTmxObjectGroup>;
-    FBackgroundColor: TColor;
-    procedure ParseXML(const Node: IXMLNode);
+    FLayers: TObjectList<TTmxLayer>;
+    procedure ParseMap(Node: IXMLNode);
+    procedure ParseTileset(Node: IXMLNode);
+    procedure ParseTilesetTile(Node: IXMLNode; Tileset: TTmxTileset);
+    procedure ParseTilesetImage(Node: IXMLNode; Tileset: TTmxTileset);
+    procedure ParseTileLayer(Node: IXMLNode);
+    procedure ParseTileLayerData(Node: IXMLNode; Layer: TTmxTileLayer);
+    procedure DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string);
+    procedure DecodeCSVLayerData(Layer: TTmxTileLayer; Text: string);
+    function GetTilesetByGid(Gid: Integer): TTmxTileset;
+    procedure ParseObjectGroup(Node: IXMLNode);
+    procedure ParseObjectGroupObject(Node: IXMLNode; Group: TTmxObjectGroup);
   public
     constructor Create;
     destructor Destroy; override;
-    procedure Load(const FileName: string);
-    function GetLayerByName(const Name: string): TTmxTileLayer;
-    property FilePath: string read FFilePath write FFilePath;
-    property Width: Integer read FWidth write FWidth;
-    property Height: Integer read FHeight write FHeight;
-    property TileWidth: Integer read FTileWidth write FTileWidth;
-    property TileHeight: Integer read FTileHeight write FTileHeight;
-    property BackgroundColor: TColor read FBackgroundColor
-      write FBackgroundColor;
-    property Tilesets: TObjectDictionary<Integer, TTmxTileset> read FTilesets
-      write FTilesets;
-    property TileLayers: TObjectList<TTmxTileLayer> read FTileLayers
-      write FTileLayers;
-    property ObjectGroups: TObjectList<TTmxObjectGroup> read FObjectGroups
-      write FObjectGroups;
+    procedure LoadFromFile(const FileName: string);
+    property Width: Integer read FWidth;
+    property Height: Integer read FHeight;
+    property TileWidth: Integer read FTileWidth;
+    property TileHeight: Integer read FTileHeight;
+    property Tilesets: TObjectDictionary<Integer, TTmxTileset> read FTilesets;
+    property Layers: TObjectList<TTmxLayer> read FLayers;
   end;
 
 implementation
 
 uses
-  Vcl.Dialogs, System.Types, Vcl.Imaging.pngimage, TmxUtils;
+  System.SysUtils, System.Classes, TmxImage;
 
-{ TMap }
+{ TTmxMapReader }
 
 constructor TTmxMap.Create;
 begin
   FTilesets := TObjectDictionary<Integer, TTmxTileset>.Create([doOwnsValues]);
-  FTileLayers := TObjectList<TTmxTileLayer>.Create(True);
-  FObjectGroups := TObjectList<TTmxObjectGroup>.Create(True);
-  FBackgroundColor := clBlack;
+  FLayers := TObjectList<TTmxLayer>.Create(True);
+end;
+
+procedure TTmxMap.DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string);
+begin
+
+end;
+
+procedure TTmxMap.DecodeCSVLayerData(Layer: TTmxTileLayer; Text: string);
+var
+  List: TStringList;
+  Y, X: Integer;
+  Tokens: TArray<string>;
+  Gid, TileId: Integer;
+  Tileset: TTmxTileset;
+  Cell: TTmxCell;
+begin
+  List := TStringList.Create;
+  try
+    List.Text := Text;
+    List.Delete(0);
+
+    for Y := 0 to Layer.Height - 1 do
+    begin
+      Tokens := List[Y].Split([',']);
+      for X := 0 to Layer.Width - 1 do
+      begin
+        Gid := Tokens[X].ToInteger;
+        if Gid <> 0 then
+        begin
+          Tileset := GetTilesetByGid(Gid);
+          TileId := Gid - Tileset.FirstGId;
+          Cell := TTmxCell.Create(Tileset, TileId);
+          Layer.SetCell(Cell, X, Y);
+        end;
+      end;
+    end;
+  finally
+    List.Free;
+  end;
 end;
 
 destructor TTmxMap.Destroy;
 begin
-  FObjectGroups.Free;
-  FTileLayers.Free;
+  FLayers.Free;
   FTilesets.Free;
   inherited;
 end;
 
-function TTmxMap.GetLayerByName(const Name: string): TTmxTileLayer;
+function TTmxMap.GetTilesetByGid(Gid: Integer): TTmxTileset;
 var
-  Layer: TTmxTileLayer;
+  Keys: TArray<Integer>;
+  Tileset: TTmxTileset;
+  I: Integer;
 begin
   Result := nil;
-  for Layer in TileLayers do
+  Keys := FTilesets.Keys.ToArray;
+  TArray.Sort<Integer>(Keys);
+  for I := Length(Keys) - 1 downto 0 do
   begin
-    if AnsiSameText(Layer.Name, Name) then
-      Exit(Layer);
+    Tileset := FTilesets[Keys[I]];
+    if Tileset.FirstGId <= Gid then
+      Exit(Tileset);
   end;
 end;
 
-procedure TTmxMap.Load(const FileName: string);
+procedure TTmxMap.LoadFromFile(const FileName: string);
 var
   Document: IXMLDocument;
   Node: IXMLNode;
 begin
-  FFilePath := ExtractFilePath(FileName);
   Document := TXMLDocument.Create(nil);
   try
     Document.LoadFromFile(FileName);
     Node := Document.ChildNodes['map'];
-    ParseXML(Node);
+    ParseMap(Node);
   finally
     Document := nil;
   end;
 end;
 
-procedure TTmxMap.ParseXML(const Node: IXMLNode);
+procedure TTmxMap.ParseTileLayer(Node: IXMLNode);
+var
+  Name: string;
+  Layer: TTmxTileLayer;
+  ChildNode: IXMLNode;
+begin
+  Name := Node.Attributes['name'];
+  Layer := TTmxTileLayer.Create(Name);
+  Layer.Width := Node.Attributes['width'];
+  Layer.Height := Node.Attributes['height'];
+  FLayers.Add(Layer);
+
+  if Node.HasAttribute('visible') then
+    Layer.Visible := Node.Attributes['visible']
+  else
+    Layer.Visible := True;
+
+  ChildNode := Node.ChildNodes.First;
+  while Assigned(ChildNode) do
+  begin
+    if SameText(ChildNode.NodeName, 'data') then
+      ParseTileLayerData(ChildNode, Layer);
+
+    ChildNode := ChildNode.NextSibling;
+  end;
+end;
+
+procedure TTmxMap.ParseTileLayerData(Node: IXMLNode; Layer: TTmxTileLayer);
+var
+  Encoding: string;
+begin
+  if Node.HasAttribute('encoding') then
+  begin
+    Encoding := Node.Attributes['encoding'];
+    if SameText(Encoding, 'base64') then
+      DecodeBinaryLayerData(Layer, Node.Text)
+    else if SameText(Encoding, 'csv') then
+      DecodeCSVLayerData(Layer, Node.Text);
+  end;
+end;
+
+procedure TTmxMap.ParseMap(Node: IXMLNode);
 var
   ChildNode: IXMLNode;
-  Tileset: TTmxTileset;
-  Layer: TTmxTileLayer;
-  ObjectGroup: TTmxObjectGroup;
-  Value: string;
 begin
   FWidth := Node.Attributes['width'];
   FHeight := Node.Attributes['height'];
   FTileWidth := Node.Attributes['tilewidth'];
   FTileHeight := Node.Attributes['tileheight'];
 
-  if Node.HasAttribute('backgroundcolor') then
-  begin
-    Value := Node.Attributes['backgroundcolor'];
-    FBackgroundColor := HtmlToColor(Value);
-  end;
-
   ChildNode := Node.ChildNodes.First;
   while Assigned(ChildNode) do
   begin
     if SameText(ChildNode.NodeName, 'tileset') then
-    begin
-      Tileset := TTmxTileset.Create(FFilePath);
-      Tileset.ParseXML(ChildNode);
-      FTilesets.Add(Tileset.FirstGid, Tileset);
-    end
+      ParseTileset(ChildNode)
     else if SameText(ChildNode.NodeName, 'layer') then
-    begin
-      Layer := TTmxTileLayer.Create;
-      Layer.ParseXML(ChildNode);
-      FTileLayers.Add(Layer);
-    end
+      ParseTileLayer(ChildNode)
     else if SameText(ChildNode.NodeName, 'objectgroup') then
+      ParseObjectGroup(ChildNode);
+
+    ChildNode := ChildNode.NextSibling;
+  end;
+end;
+
+procedure TTmxMap.ParseObjectGroup(Node: IXMLNode);
+var
+  Name: string;
+  ObjectGroup: TTmxObjectGroup;
+  ChildNode: IXMLNode;
+begin
+  Name := Node.Attributes['name'];
+  ObjectGroup := TTmxObjectGroup.Create(Name);
+  FLayers.Add(ObjectGroup);
+
+  if Node.HasAttribute('visible') then
+    ObjectGroup.Visible := Node.Attributes['visible']
+  else
+    ObjectGroup.Visible := True;
+
+  ChildNode := Node.ChildNodes.First;
+  while Assigned(ChildNode) do
+  begin
+    if SameText(ChildNode.NodeName, 'object') then
+      ParseObjectGroupObject(ChildNode, ObjectGroup);
+
+    ChildNode := ChildNode.NextSibling;
+  end;
+end;
+
+procedure TTmxMap.ParseObjectGroupObject(Node: IXMLNode; Group: TTmxObjectGroup);
+var
+  TmxObject: TTmxObject;
+begin
+  TmxObject := TTmxObject.Create;
+  TmxObject.Name := Node.Attributes['name'];
+  TmxObject.ObjectType := Node.Attributes['type'];
+  TmxObject.X := Node.Attributes['x'];
+  TmxObject.Y := Node.Attributes['y'];
+  TmxObject.Width := Node.Attributes['width'];
+  TmxObject.Height := Node.Attributes['height'];
+  Group.Objects.Add(TmxObject);
+end;
+
+procedure TTmxMap.ParseTileset(Node: IXMLNode);
+var
+  Tileset: TTmxTileset;
+  FirstGId: Integer;
+  ChildNode: IXMLNode;
+  Source: string;
+begin
+  FirstGId := Node.Attributes['firstgid'];
+  if Node.HasAttribute('source') then
+  begin
+    Source := Node.Attributes['source'];
+
+  end
+  else
+  begin
+    Tileset := TTmxTileset.Create(FirstGId);
+    Tileset.Name := Node.Attributes['name'];
+    Tileset.TileWidth := Node.Attributes['tilewidth'];
+    Tileset.TileHeight := Node.Attributes['tileheight'];
+    Tileset.Columns := Node.Attributes['columns'];
+    FTilesets.Add(FirstGId, Tileset);
+
+    ChildNode := Node.ChildNodes.First;
+    while Assigned(ChildNode) do
     begin
-      ObjectGroup := TTmxObjectGroup.Create;
-      ObjectGroup.ParseXML(ChildNode);
-      FObjectGroups.Add(ObjectGroup);
+      if SameText(ChildNode.NodeName, 'tile') then
+        ParseTilesetTile(ChildNode, Tileset)
+      else if SameText(ChildNode.NodeName, 'image') then
+        ParseTilesetImage(ChildNode, Tileset);
+
+      ChildNode := ChildNode.NextSibling;
     end;
+  end;
+end;
+
+procedure TTmxMap.ParseTilesetImage(Node: IXMLNode; Tileset: TTmxTileset);
+begin
+  Tileset.Image.Width := Node.Attributes['width'];
+  Tileset.Image.Height := Node.Attributes['height'];
+  Tileset.Image.Source := Node.Attributes['source'];
+  Tileset.LoadFromFile(Tileset.Image.Source);
+end;
+
+procedure TTmxMap.ParseTilesetTile(Node: IXMLNode; Tileset: TTmxTileset);
+var
+  Id: Integer;
+  Tile: TTmxTile;
+  ChildNode: IXMLNode;
+begin
+  Id := Node.Attributes['id'];
+  Tile := TTmxTile.Create(Id, Tileset);
+  Tileset.Tiles.Add(Id, Tile);
+
+  ChildNode := Node.ChildNodes.First;
+  while Assigned(ChildNode) do
+  begin
+    // if SameText(ChildNode.NodeName, 'image') then
+    // ParseImage(ChildNode, Tileset);
 
     ChildNode := ChildNode.NextSibling;
   end;

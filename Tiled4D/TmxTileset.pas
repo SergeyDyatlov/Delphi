@@ -3,193 +3,147 @@ unit TmxTileset;
 interface
 
 uses
-  System.SysUtils, Vcl.Graphics, PngImage, System.Generics.Collections,
-  Xml.XMLIntf, TmxTypes;
+  System.Generics.Collections, TmxImage, PngImage;
 
 type
-  TTmxImage = class
-  private
-    FSource: string;
-    FWidth: Integer;
-    FHeight: Integer;
-    FTmxPath: string;
-  public
-    constructor Create(const ATmxPath: string);
-    destructor Destroy; override;
-    procedure ParseXML(const Node: IXMLNode);
-    property Source: string read FSource write FSource;
-    property Width: Integer read FWidth write FWidth;
-    property Height: Integer read FHeight write FHeight;
-  end;
+  TTmxTileset = class;
 
   TTmxTile = class
-  strict private
+  private
     FId: Integer;
-    FImage: TTmxImage;
-    FTmxPath: string;
+    FTileset: TTmxTileset;
+    FImage: TPngImage;
+    FWidth: Integer;
+    FHeight: Integer;
   public
-    constructor Create(const ATmxPath: string);
+    constructor Create(AId: Integer; ATileset: TTmxTileset);
     destructor Destroy; override;
-    procedure ParseXML(const Node: IXMLNode);
     property Id: Integer read FId write FId;
-    property Image: TTmxImage read FImage write FImage;
+    property Tileset: TTmxTileset read FTileset write FTileset;
+    property Image: TPngImage read FImage write FImage;
+    property Width: Integer read FWidth;
+    property Height: Integer read FHeight;
   end;
 
+  TTmxTileDictionary = TObjectDictionary<Integer, TTmxTile>;
+
   TTmxTileset = class
-  strict private
-    FFirstGid: Integer;
+  private
+    FFirstGId: Integer;
     FName: string;
     FTileWidth: Integer;
     FTileHeight: Integer;
     FTileCount: Integer;
     FColumns: Integer;
-    FTiles: TObjectDictionary<Integer, TTmxTile>;
     FImage: TTmxImage;
-    FTmxPath: string;
+    FTiles: TTmxTileDictionary;
   public
-    constructor Create(const ATmxPath: string);
+    constructor Create(AFirstGId: Integer);
     destructor Destroy; override;
-    procedure ParseXML(const Node: IXMLNode);
     procedure LoadFromFile(const FileName: string);
-    property FirstGid: Integer read FFirstGid write FFirstGid;
+    property FirstGId: Integer read FFirstGId write FFirstGId;
     property Name: string read FName write FName;
     property TileWidth: Integer read FTileWidth write FTileWidth;
     property TileHeight: Integer read FTileHeight write FTileHeight;
     property TileCount: Integer read FTileCount write FTileCount;
     property Columns: Integer read FColumns write FColumns;
-    property Tiles: TObjectDictionary<Integer, TTmxTile> read FTiles
-      write FTiles;
     property Image: TTmxImage read FImage write FImage;
+    property Tiles: TTmxTileDictionary read FTiles write FTiles;
   end;
 
 implementation
 
 uses
-  Vcl.Dialogs, Xml.XMLDoc, System.IOUtils;
+  System.Types, Vcl.Graphics, Winapi.Windows;
 
-{ TTileset }
+{ TTmxTileset }
 
-constructor TTmxTileset.Create(const ATmxPath: string);
+constructor TTmxTileset.Create(AFirstGId: Integer);
 begin
-  FTmxPath := ATmxPath;
-  FTiles := TObjectDictionary<Integer, TTmxTile>.Create([doOwnsValues]);
-  FImage := TTmxImage.Create(FTmxPath);
+  FFirstGId := AFirstGId;
+  FImage := TTmxImage.Create;
+  FTiles := TTmxTileDictionary.Create([doOwnsValues]);
 end;
 
 destructor TTmxTileset.Destroy;
 begin
-  FImage.Free;
   FTiles.Free;
+  FImage.Free;
   inherited;
 end;
 
 procedure TTmxTileset.LoadFromFile(const FileName: string);
+
+  function CopyPNG(const Image: TPngImage; const R: TRect): TPngImage;
+  var
+    I: Integer;
+  begin
+    Result := TPngImage.CreateBlank(COLOR_RGBALPHA, 8, R.Width, R.Height);
+    BitBlt(Result.Canvas.Handle, 0, 0, R.Width, R.Height, Image.Canvas.Handle, R.Left,
+      R.Top, SRCCOPY);
+
+    for I := 0 to R.Height - 1 do
+    begin
+      if not Assigned(Result.AlphaScanline[I]) or
+        not Assigned(Image.AlphaScanline[I + R.Top]) then
+        Break;
+
+      CopyMemory(Result.AlphaScanline[I], PByte(Integer(Image.AlphaScanline[I + R.Top]) +
+        R.Left), R.Width);
+    end;
+  end;
+
 var
-  Document: IXMLDocument;
-  Node: IXMLNode;
+  Image: TPngImage;
+  RowCount, ColCount: Integer;
+  X, Y: Integer;
+  TileId: Integer;
+  Tile: TTmxTile;
+  ImageRect: TRect;
 begin
-  Document := TXMLDocument.Create(nil);
+  Image := TPngImage.Create;
   try
-    try
-      Document.LoadFromFile(FileName);
-      Node := Document.ChildNodes['tileset'];
-      ParseXML(Node);
-    except
-      raise ETmxError.CreateFmt('Error loading: ', [FileName]);
+    Image.LoadFromFile(FileName);
+
+    RowCount := FImage.Width div FTileWidth;
+    ColCount := FImage.Height div FTileHeight;
+
+    TileId := 0;
+    for Y := 0 to ColCount - 1 do
+    begin
+      for X := 0 to RowCount - 1 do
+      begin
+        ImageRect.Left := X * FTileWidth;
+        ImageRect.Top := Y * FTileHeight;
+        ImageRect.Width := FTileWidth;
+        ImageRect.Height := FTileHeight;
+
+        Tile := TTmxTile.Create(TileId, Self);
+        FTiles.Add(TileId, Tile);
+        Tile.Image := CopyPNG(Image, ImageRect);
+
+        Inc(TileId);
+      end;
     end;
   finally
-    Document := nil;
-  end;
-end;
-
-procedure TTmxTileset.ParseXML(const Node: IXMLNode);
-var
-  ChildNode: IXMLNode;
-  Tile: TTmxTile;
-  FileName: string;
-begin
-  if Node.HasAttribute('firstgid') then
-    FFirstGid := Node.Attributes['firstgid'];
-
-  if Node.HasAttribute('source') then
-  begin
-    FileName := Node.Attributes['source'];
-    FileName := TPath.Combine(FTmxPath, FileName);
-    LoadFromFile(FileName);
-  end
-  else
-  begin
-    FName := Node.Attributes['name'];
-    FTileWidth := Node.Attributes['tilewidth'];
-    FTileHeight := Node.Attributes['tileheight'];
-
-    if Node.HasAttribute('tilecount') then
-      FTileCount := Node.Attributes['tilecount'];
-    if Node.HasAttribute('columns') then
-      FColumns := Node.Attributes['columns'];
-
-    ChildNode := Node.ChildNodes.First;
-    while Assigned(ChildNode) do
-    begin
-      if SameText(ChildNode.NodeName, 'tile') then
-      begin
-        Tile := TTmxTile.Create(FTmxPath);
-        Tile.ParseXML(ChildNode);
-        FTiles.Add(Tile.Id, Tile);
-      end
-      else if SameText(ChildNode.NodeName, 'image') then
-      begin
-        FImage.ParseXML(ChildNode);
-      end;
-
-      ChildNode := ChildNode.NextSibling;
-    end;
+    Image.Free;
   end;
 end;
 
 { TTmxTile }
 
-constructor TTmxTile.Create(const ATmxPath: string);
+constructor TTmxTile.Create(AId: Integer; ATileset: TTmxTileset);
 begin
-  FTmxPath := ATmxPath;
-  FImage := TTmxImage.Create(FTmxPath);
+  FId := AId;
+  FTileset := ATileset;
+  FWidth := FTileset.TileWidth;
+  FHeight := FTileset.TileHeight;
 end;
 
 destructor TTmxTile.Destroy;
 begin
   FImage.Free;
   inherited;
-end;
-
-procedure TTmxTile.ParseXML(const Node: IXMLNode);
-var
-  ChildNode: IXMLNode;
-begin
-  FId := Node.Attributes['id'];
-  ChildNode := Node.ChildNodes['image'];
-  FImage.ParseXML(ChildNode);
-end;
-
-{ TTmxImage }
-
-constructor TTmxImage.Create(const ATmxPath: string);
-begin
-  inherited Create;
-  FTmxPath := ATmxPath;
-end;
-
-destructor TTmxImage.Destroy;
-begin
-
-  inherited;
-end;
-
-procedure TTmxImage.ParseXML(const Node: IXMLNode);
-begin
-  FWidth := Node.Attributes['width'];
-  FHeight := Node.Attributes['height'];
-  FSource := Node.Attributes['source'];
-  FSource := TPath.Combine(FTmxPath, FSource);
 end;
 
 end.
