@@ -3,12 +3,13 @@ unit TmxMap;
 interface
 
 uses
-  Xml.XMLIntf, XMLDoc, TmxLayer, TmxTileLayer, TmxTileset, System.Generics.Collections,
-  TmxObjectGroup;
+  Xml.XMLIntf, XMLDoc, TmxLayer, TmxTileLayer, TmxTileset, TmxObjectGroup,
+  System.Generics.Collections;
 
 type
   TTmxMap = class
   private
+    FFilePath: string;
     FWidth: Integer;
     FHeight: Integer;
     FTileWidth: Integer;
@@ -41,7 +42,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Classes, TmxImage;
+  System.SysUtils, System.Classes, System.IOUtils, TmxImage;
 
 { TTmxMapReader }
 
@@ -119,6 +120,7 @@ var
   Document: IXMLDocument;
   Node: IXMLNode;
 begin
+  FFilePath := ExtractFilePath(FileName);
   Document := TXMLDocument.Create(nil);
   try
     Document.LoadFromFile(FileName);
@@ -218,7 +220,8 @@ begin
   end;
 end;
 
-procedure TTmxMap.ParseObjectGroupObject(Node: IXMLNode; Group: TTmxObjectGroup);
+procedure TTmxMap.ParseObjectGroupObject(Node: IXMLNode;
+  Group: TTmxObjectGroup);
 var
   TmxObject: TTmxObject;
 begin
@@ -268,10 +271,13 @@ begin
 end;
 
 procedure TTmxMap.ParseTilesetImage(Node: IXMLNode; Tileset: TTmxTileset);
+var
+  Source: string;
 begin
+  Source := Node.Attributes['source'];
+  Tileset.Image.Source := TPath.Combine(FFilePath, Source);
   Tileset.Image.Width := Node.Attributes['width'];
   Tileset.Image.Height := Node.Attributes['height'];
-  Tileset.Image.Source := Node.Attributes['source'];
   Tileset.LoadFromFile(Tileset.Image.Source);
 end;
 
