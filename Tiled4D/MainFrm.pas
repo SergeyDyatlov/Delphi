@@ -14,6 +14,7 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormPaint(Sender: TObject; Canvas: TCanvas; const ARect: TRectF);
     procedure Timer1Timer(Sender: TObject);
+    procedure FormResize(Sender: TObject);
   private
     FMap: TTmxMap;
     FRenderer: TTmxIsometricRenderer;
@@ -52,6 +53,12 @@ procedure TMainForm.FormPaint(Sender: TObject; Canvas: TCanvas;
 begin
 //  Canvas.Clear(TAlphaColors.Black);
   FRenderer.Draw(Canvas);
+end;
+
+procedure TMainForm.FormResize(Sender: TObject);
+begin
+  FRenderer.Camera.Width := Width;
+  FRenderer.Camera.Height := Height;
 end;
 
 procedure TMainForm.Timer1Timer(Sender: TObject);

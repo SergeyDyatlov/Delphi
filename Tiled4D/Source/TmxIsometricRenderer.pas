@@ -133,6 +133,7 @@ var
   Position: TPointF;
   Bounds: TRectF;
   Points: TPolygon;
+  TextWidth: Single;
 begin
   for TmxObject in Group.Objects do
   begin
@@ -151,9 +152,16 @@ begin
 
     Canvas.BeginScene;
     try
+      Canvas.FillPolygon(Points, 20);
+
+      TextWidth := Canvas.TextWidth(TmxObject.Name);
+      Position := PixelToScreenCoords(TmxObject.X, TmxObject.Y);
+      Position.Offset(-TextWidth / 2, -TmxObject.Height);
+      Bounds := TRectF.Create(Position, TextWidth, TmxObject.Height);
+      Bounds.Offset(-FCamera.Left, -FCamera.Top);
+
       Canvas.FillText(Bounds, TmxObject.Name, False, 100,
         [TFillTextFlag.RightToLeft], TTextAlign.Center, TTextAlign.Center);
-      Canvas.FillPolygon(Points, 20);
     finally
       Canvas.EndScene;
     end;

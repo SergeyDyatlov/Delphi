@@ -9,6 +9,7 @@ object MainForm: TMainForm
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnResize = FormResize
   OnPaint = FormPaint
   DesignerMasterStyle = 0
   object Timer1: TTimer
