@@ -3,7 +3,7 @@ unit TmxObjectGroup;
 interface
 
 uses
-  TmxLayer, System.Generics.Collections;
+  System.Types, TmxLayer, System.Generics.Collections;
 
 type
   TTmxObject = class
@@ -11,18 +11,18 @@ type
     FId: Integer;
     FName: string;
     FObjectType: string;
-    FX: Integer;
-    FY: Integer;
-    FWidth: Integer;
-    FHeight: Integer;
+    FX: Single;
+    FY: Single;
+    FWidth: Single;
+    FHeight: Single;
   public
     property Id: Integer read FId write FId;
     property Name: string read FName write FName;
     property ObjectType: string read FObjectType write FObjectType;
-    property X: Integer read FX write FX;
-    property Y: Integer read FY write FY;
-    property Width: Integer read FWidth write FWidth;
-    property Height: Integer read FHeight write FHeight;
+    property X: Single read FX write FX;
+    property Y: Single read FY write FY;
+    property Width: Single read FWidth write FWidth;
+    property Height: Single read FHeight write FHeight;
   end;
 
   TTmxObjectGroup = class(TTmxLayer)
@@ -30,7 +30,7 @@ type
     FObjects: TObjectList<TTmxObject>;
     FName: string;
   public
-    constructor Create(const AName: string);
+    constructor Create(const AName: string); override;
     destructor Destroy; override;
     property Name: string read FName write FName;
     property Objects: TObjectList<TTmxObject> read FObjects;

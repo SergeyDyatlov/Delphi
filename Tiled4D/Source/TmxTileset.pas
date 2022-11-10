@@ -3,7 +3,7 @@ unit TmxTileset;
 interface
 
 uses
-  System.Generics.Collections, TmxImage, PngImage;
+  System.Generics.Collections, TmxImage, FMX.Graphics;
 
 type
   TTmxTileset = class;
@@ -12,7 +12,7 @@ type
   private
     FId: Integer;
     FTileset: TTmxTileset;
-    FImage: TPngImage;
+    FImage: TBitmap;
     FWidth: Integer;
     FHeight: Integer;
   public
@@ -20,7 +20,7 @@ type
     destructor Destroy; override;
     property Id: Integer read FId write FId;
     property Tileset: TTmxTileset read FTileset write FTileset;
-    property Image: TPngImage read FImage write FImage;
+    property Image: TBitmap read FImage write FImage;
     property Width: Integer read FWidth;
     property Height: Integer read FHeight;
   end;
@@ -54,7 +54,7 @@ type
 implementation
 
 uses
-  System.Types, Vcl.Graphics, Winapi.Windows;
+  System.Types, System.UITypes;
 
 { TTmxTileset }
 
@@ -73,35 +73,15 @@ begin
 end;
 
 procedure TTmxTileset.LoadFromFile(const FileName: string);
-
-  function CopyPNG(const Image: TPngImage; const R: TRect): TPngImage;
-  var
-    I: Integer;
-  begin
-    Result := TPngImage.CreateBlank(COLOR_RGBALPHA, 8, R.Width, R.Height);
-    BitBlt(Result.Canvas.Handle, 0, 0, R.Width, R.Height, Image.Canvas.Handle, R.Left,
-      R.Top, SRCCOPY);
-
-    for I := 0 to R.Height - 1 do
-    begin
-      if not Assigned(Result.AlphaScanline[I]) or
-        not Assigned(Image.AlphaScanline[I + R.Top]) then
-        Break;
-
-      CopyMemory(Result.AlphaScanline[I], PByte(Integer(Image.AlphaScanline[I + R.Top]) +
-        R.Left), R.Width);
-    end;
-  end;
-
 var
-  Image: TPngImage;
+  Image: TBitmap;
   RowCount, ColCount: Integer;
   X, Y: Integer;
   TileId: Integer;
   Tile: TTmxTile;
-  ImageRect: TRect;
+  DstRect, SrcRect: TRectF;
 begin
-  Image := TPngImage.Create;
+  Image := TBitmap.Create;
   try
     Image.LoadFromFile(FileName);
 
@@ -113,14 +93,23 @@ begin
     begin
       for X := 0 to RowCount - 1 do
       begin
-        ImageRect.Left := X * FTileWidth;
-        ImageRect.Top := Y * FTileHeight;
-        ImageRect.Width := FTileWidth;
-        ImageRect.Height := FTileHeight;
-
         Tile := TTmxTile.Create(TileId, Self);
         FTiles.Add(TileId, Tile);
-        Tile.Image := CopyPNG(Image, ImageRect);
+
+        SrcRect.Left := X * FTileWidth;
+        SrcRect.Top := Y * FTileHeight;
+        SrcRect.Width := FTileWidth;
+        SrcRect.Height := FTileHeight;
+
+        DstRect.Left := 0;
+        DstRect.Top := 0;
+        DstRect.Width := FTileWidth;
+        DstRect.Height := FTileHeight;
+
+        Tile.Image.SetSize(FTileWidth, FTileHeight);
+        Tile.Image.Canvas.BeginScene;
+        Tile.Image.Canvas.DrawBitmap(Image, SrcRect, DstRect, 20);
+        Tile.Image.Canvas.EndScene;
 
         Inc(TileId);
       end;
@@ -138,6 +127,7 @@ begin
   FTileset := ATileset;
   FWidth := FTileset.TileWidth;
   FHeight := FTileset.TileHeight;
+  FImage := TBitmap.Create;
 end;
 
 destructor TTmxTile.Destroy;

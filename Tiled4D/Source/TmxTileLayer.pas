@@ -81,7 +81,10 @@ end;
 
 function TTmxTileLayer.GetCell(X, Y: Integer): TTmxCell;
 begin
-  Result := FGrid[Y, X];
+  if (X in [0 .. FWidth - 1]) and (Y in [0 .. FHeight - 1]) then
+    Result := FGrid[Y, X]
+  else
+    Result := nil;
 end;
 
 procedure TTmxTileLayer.SetCell(Cell: TTmxCell; X, Y: Integer);
