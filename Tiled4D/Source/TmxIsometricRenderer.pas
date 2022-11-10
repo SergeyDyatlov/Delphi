@@ -153,7 +153,7 @@ begin
     try
       Canvas.FillText(Bounds, TmxObject.Name, False, 100,
         [TFillTextFlag.RightToLeft], TTextAlign.Center, TTextAlign.Center);
-//      Canvas.FillPolygon(Points, 20);
+      Canvas.FillPolygon(Points, 20);
     finally
       Canvas.EndScene;
     end;
@@ -212,7 +212,7 @@ begin
         DstRect.Height := Cell.Tile.Height;
 
         DstRect.Offset(-FCamera.Left, -FCamera.Top);
-        DstRect.Offset(0, -(Cell.Tile.Height - FMap.TileHeight));
+        DstRect.Offset(0, -Cell.Tile.Height);
         Canvas.DrawBitmap(Cell.Tile.Image, SrcRect, DstRect, 20);
       end;
 
@@ -240,19 +240,27 @@ end;
 function TTmxIsometricRenderer.PixelToScreenCoords(X, Y: Single): TPointF;
 var
   TileX, TileY: Single;
+  OriginX: Single;
 begin
+  OriginX := FMap.Height * FMap.TileWidth / 2;
+
   TileX := X / FMap.TileHeight;
   TileY := Y / FMap.TileHeight;
-  Result.X := (TileX - TileY) * FMap.TileWidth / 2;
+
+  Result.X := (TileX - TileY) * FMap.TileWidth / 2 + OriginX;
   Result.Y := (TileX + TileY) * FMap.TileHeight / 2;
 end;
 
 function TTmxIsometricRenderer.ScreenToPixelCoords(X, Y: Single): TPointF;
 var
   TileX, TileY: Single;
+  OriginX: Single;
 begin
-  TileX := X / FMap.TileWidth;
+  OriginX := X - FMap.Height * FMap.TileWidth / 2;
+
+  TileX := OriginX / FMap.TileWidth;
   TileY := Y / FMap.TileHeight;
+
   Result.X := (TileX + TileY) * FMap.TileHeight;
   Result.Y := (TileY - TileX) * FMap.TileHeight;
 end;
@@ -265,16 +273,24 @@ end;
 function TTmxIsometricRenderer.ScreenToTileCoords(X, Y: Single): TPointF;
 var
   TileX, TileY: Single;
+  OriginX: Single;
 begin
-  TileX := X / FMap.TileWidth;
+  OriginX := X - FMap.Height * FMap.TileWidth / 2;
+
+  TileX := OriginX / FMap.TileWidth;
   TileY := Y / FMap.TileHeight;
+
   Result.X := TileX + TileY;
   Result.Y := TileY - TileX;
 end;
 
 function TTmxIsometricRenderer.TileToScreenCoords(X, Y: Single): TPointF;
+var
+  OriginX: Single;
 begin
-  Result.X := (X - Y) * FMap.TileWidth / 2;
+  OriginX := FMap.Height * FMap.TileWidth / 2;
+
+  Result.X := (X - Y) * FMap.TileWidth / 2 + OriginX;
   Result.Y := (X + Y) * FMap.TileHeight / 2;
 end;
 
