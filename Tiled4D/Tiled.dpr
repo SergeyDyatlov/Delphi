@@ -13,7 +13,7 @@ uses
   TmxTileLayer in 'Source\TmxTileLayer.pas',
   TmxTileset in 'Source\TmxTileset.pas',
   Keyboard in 'Keyboard.pas',
-  TmxMapRenderer in 'TmxMapRenderer.pas';
+  TmxMapRenderer in 'Source\TmxMapRenderer.pas';
 
 {$R *.res}
 
