@@ -12,9 +12,9 @@ type
     FMap: TTmxMap;
     FCamera: TRect;
   protected
-    function ScreenToTileCoords(X, Y: Single): TPointF; overload; virtual;
+    function ScreenToTileCoords(X, Y: Double): TPointF; overload; virtual;
     function ScreenToTileCoords(Coords: TPointF): TPointF; overload; virtual;
-    function TileToScreenCoords(X, Y: Single): TPointF; overload; virtual;
+    function TileToScreenCoords(X, Y: Double): TPointF; overload; virtual;
     function TileToScreenCoords(Coords: TPointF): TPointF; overload; virtual;
 
     procedure DrawGrid(Canvas: TCanvas); virtual;
@@ -36,7 +36,7 @@ begin
   FMap := AMap;
 end;
 
-function TTmxMapRenderer.ScreenToTileCoords(X, Y: Single): TPointF;
+function TTmxMapRenderer.ScreenToTileCoords(X, Y: Double): TPointF;
 begin
 
 end;
@@ -89,7 +89,7 @@ begin
   Result := ScreenToTileCoords(Coords.X, Coords.Y);
 end;
 
-function TTmxMapRenderer.TileToScreenCoords(X, Y: Single): TPointF;
+function TTmxMapRenderer.TileToScreenCoords(X, Y: Double): TPointF;
 begin
 
 end;

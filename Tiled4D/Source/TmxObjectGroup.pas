@@ -12,19 +12,19 @@ type
     FName: string;
     FObjectType: string;
     FGId: Cardinal;
-    FX: Single;
-    FY: Single;
-    FWidth: Single;
-    FHeight: Single;
+    FX: Double;
+    FY: Double;
+    FWidth: Double;
+    FHeight: Double;
   public
     property Id: Integer read FId write FId;
     property Name: string read FName write FName;
     property ObjectType: string read FObjectType write FObjectType;
     property GId: Cardinal read FGId write FGId;
-    property X: Single read FX write FX;
-    property Y: Single read FY write FY;
-    property Width: Single read FWidth write FWidth;
-    property Height: Single read FHeight write FHeight;
+    property X: Double read FX write FX;
+    property Y: Double read FY write FY;
+    property Width: Double read FWidth write FWidth;
+    property Height: Double read FHeight write FHeight;
   end;
 
   TTmxObjectGroup = class(TTmxLayer)

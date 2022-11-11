@@ -9,10 +9,10 @@ uses
 type
   TTmxIsometricRenderer = class(TTmxMapRenderer)
   protected
-    function ScreenToPixelCoords(X, Y: Single): TPointF;
-    function PixelToScreenCoords(X, Y: Single): TPointF;
-    function ScreenToTileCoords(X, Y: Single): TPointF; override;
-    function TileToScreenCoords(X, Y: Single): TPointF; override;
+    function ScreenToPixelCoords(X, Y: Double): TPointF;
+    function PixelToScreenCoords(X, Y: Double): TPointF;
+    function ScreenToTileCoords(X, Y: Double): TPointF; override;
+    function TileToScreenCoords(X, Y: Double): TPointF; override;
 
     procedure DrawGrid(Canvas: TCanvas); override;
     procedure DrawObjectGroup(Canvas: TCanvas; Group: TTmxObjectGroup); override;
@@ -100,7 +100,7 @@ var
   Position: TPointF;
   Bounds: TRectF;
   Points: TPolygon;
-  TextWidth: Single;
+  TextWidth: Double;
 begin
   for TmxObject in Group.Objects do
   begin
@@ -141,7 +141,7 @@ var
   StartCoords, TileCoords: TPointF;
   TileRow, TileCol: TPoint;
   InTopHalf, InLeftHalf, Shifted: Boolean;
-  Y, X: Single;
+  Y, X: Double;
   Cell: TTmxCell;
   SrcRect, DstRect: TRectF;
 begin
@@ -212,10 +212,10 @@ begin
   end;
 end;
 
-function TTmxIsometricRenderer.PixelToScreenCoords(X, Y: Single): TPointF;
+function TTmxIsometricRenderer.PixelToScreenCoords(X, Y: Double): TPointF;
 var
-  TileX, TileY: Single;
-  OriginX: Single;
+  TileX, TileY: Double;
+  OriginX: Double;
 begin
   OriginX := Map.Height * Map.TileWidth / 2;
 
@@ -226,10 +226,10 @@ begin
   Result.Y := (TileX + TileY) * Map.TileHeight / 2;
 end;
 
-function TTmxIsometricRenderer.ScreenToPixelCoords(X, Y: Single): TPointF;
+function TTmxIsometricRenderer.ScreenToPixelCoords(X, Y: Double): TPointF;
 var
-  TileX, TileY: Single;
-  OriginX: Single;
+  TileX, TileY: Double;
+  OriginX: Double;
 begin
   OriginX := X - Map.Height * Map.TileWidth / 2;
 
@@ -240,10 +240,10 @@ begin
   Result.Y := (TileY - TileX) * Map.TileHeight;
 end;
 
-function TTmxIsometricRenderer.ScreenToTileCoords(X, Y: Single): TPointF;
+function TTmxIsometricRenderer.ScreenToTileCoords(X, Y: Double): TPointF;
 var
-  TileX, TileY: Single;
-  OriginX: Single;
+  TileX, TileY: Double;
+  OriginX: Double;
 begin
   OriginX := X - Map.Height * Map.TileWidth / 2;
 
@@ -254,9 +254,9 @@ begin
   Result.Y := TileY - TileX;
 end;
 
-function TTmxIsometricRenderer.TileToScreenCoords(X, Y: Single): TPointF;
+function TTmxIsometricRenderer.TileToScreenCoords(X, Y: Double): TPointF;
 var
-  OriginX: Single;
+  OriginX: Double;
 begin
   OriginX := Map.Height * Map.TileWidth / 2;
 
