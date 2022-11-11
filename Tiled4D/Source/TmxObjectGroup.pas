@@ -11,6 +11,7 @@ type
     FId: Integer;
     FName: string;
     FObjectType: string;
+    FGId: Cardinal;
     FX: Single;
     FY: Single;
     FWidth: Single;
@@ -19,6 +20,7 @@ type
     property Id: Integer read FId write FId;
     property Name: string read FName write FName;
     property ObjectType: string read FObjectType write FObjectType;
+    property GId: Cardinal read FGId write FGId;
     property X: Single read FX write FX;
     property Y: Single read FY write FY;
     property Width: Single read FWidth write FWidth;

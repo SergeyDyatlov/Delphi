@@ -14,7 +14,7 @@ type
     FHeight: Integer;
     FTileWidth: Integer;
     FTileHeight: Integer;
-    FTilesets: TObjectDictionary<Integer, TTmxTileset>;
+    FTilesets: TObjectDictionary<Cardinal, TTmxTileset>;
     FLayers: TObjectList<TTmxLayer>;
     procedure ParseMap(Node: IXMLNode);
     procedure ParseTileset(Node: IXMLNode);
@@ -24,7 +24,7 @@ type
     procedure ParseTileLayerData(Node: IXMLNode; Layer: TTmxTileLayer);
     procedure DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string);
     procedure DecodeCSVLayerData(Layer: TTmxTileLayer; Text: string);
-    function GetTilesetByGid(Gid: Integer): TTmxTileset;
+    function GetTilesetByGid(Gid: Cardinal): TTmxTileset;
     procedure ParseObjectGroup(Node: IXMLNode);
     procedure ParseObjectGroupObject(Node: IXMLNode; Group: TTmxObjectGroup);
   public
@@ -35,7 +35,7 @@ type
     property Height: Integer read FHeight;
     property TileWidth: Integer read FTileWidth;
     property TileHeight: Integer read FTileHeight;
-    property Tilesets: TObjectDictionary<Integer, TTmxTileset> read FTilesets;
+    property Tilesets: TObjectDictionary<Cardinal, TTmxTileset> read FTilesets;
     property Layers: TObjectList<TTmxLayer> read FLayers;
   end;
 
@@ -48,7 +48,7 @@ uses
 
 constructor TTmxMap.Create;
 begin
-  FTilesets := TObjectDictionary<Integer, TTmxTileset>.Create([doOwnsValues]);
+  FTilesets := TObjectDictionary<Cardinal, TTmxTileset>.Create([doOwnsValues]);
   FLayers := TObjectList<TTmxLayer>.Create(True);
 end;
 
@@ -62,7 +62,7 @@ var
   List: TStringList;
   Y, X: Integer;
   Tokens: TArray<string>;
-  Gid, TileId: Integer;
+  Gid, TileId: Cardinal;
   Tileset: TTmxTileset;
   Cell: TTmxCell;
 begin
@@ -98,15 +98,15 @@ begin
   inherited;
 end;
 
-function TTmxMap.GetTilesetByGid(Gid: Integer): TTmxTileset;
+function TTmxMap.GetTilesetByGid(Gid: Cardinal): TTmxTileset;
 var
-  Keys: TArray<Integer>;
+  Keys: TArray<Cardinal>;
   Tileset: TTmxTileset;
-  I: Integer;
+  I: Cardinal;
 begin
   Result := nil;
   Keys := FTilesets.Keys.ToArray;
-  TArray.Sort<Integer>(Keys);
+  TArray.Sort<Cardinal>(Keys);
   for I := Length(Keys) - 1 downto 0 do
   begin
     Tileset := FTilesets[Keys[I]];
@@ -226,8 +226,14 @@ var
   TmxObject: TTmxObject;
 begin
   TmxObject := TTmxObject.Create;
-  TmxObject.Name := Node.Attributes['name'];
-  TmxObject.ObjectType := Node.Attributes['type'];
+  if Node.HasAttribute('id') then
+    TmxObject.Id := Node.Attributes['id'];
+  if Node.HasAttribute('name') then
+    TmxObject.Name := Node.Attributes['name'];
+  if Node.HasAttribute('type') then
+    TmxObject.ObjectType := Node.Attributes['type'];
+  if Node.HasAttribute('gid') then
+    TmxObject.GId := Node.Attributes['gid'];
   TmxObject.X := Node.Attributes['x'];
   TmxObject.Y := Node.Attributes['y'];
   TmxObject.Width := Node.Attributes['width'];

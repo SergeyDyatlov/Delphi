@@ -29,7 +29,7 @@ type
 
   TTmxTileset = class
   private
-    FFirstGId: Integer;
+    FFirstGId: Cardinal;
     FName: string;
     FTileWidth: Integer;
     FTileHeight: Integer;
@@ -41,7 +41,7 @@ type
     constructor Create(AFirstGId: Integer);
     destructor Destroy; override;
     procedure LoadFromFile(const FileName: string);
-    property FirstGId: Integer read FFirstGId write FFirstGId;
+    property FirstGId: Cardinal read FFirstGId write FFirstGId;
     property Name: string read FName write FName;
     property TileWidth: Integer read FTileWidth write FTileWidth;
     property TileHeight: Integer read FTileHeight write FTileHeight;
