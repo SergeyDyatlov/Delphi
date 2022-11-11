@@ -10,6 +10,7 @@ type
   TTmxMapRenderer = class
   private
     FMap: TTmxMap;
+    FCamera: TRect;
   protected
     function ScreenToTileCoords(X, Y: Single): TPointF; overload; virtual;
     function ScreenToTileCoords(Coords: TPointF): TPointF; overload; virtual;
@@ -23,6 +24,7 @@ type
     constructor Create(AMap: TTmxMap); virtual;
     procedure Draw(Canvas: TCanvas); virtual;
     property Map: TTmxMap read FMap;
+    property Camera: TRect read FCamera write FCamera;
   end;
 
 implementation

@@ -8,8 +8,6 @@ uses
 
 type
   TTmxIsometricRenderer = class(TTmxMapRenderer)
-  private
-    FCamera: TRect;
   protected
     function ScreenToPixelCoords(X, Y: Single): TPointF;
     function PixelToScreenCoords(X, Y: Single): TPointF;
@@ -22,7 +20,6 @@ type
   public
     constructor Create(AMap: TTmxMap); override;
     destructor Destroy; override;
-    property Camera: TRect read FCamera write FCamera;
   end;
 
 implementation
@@ -52,7 +49,7 @@ var
   X, Y: Integer;
   CanvasState: TCanvasSaveState;
 begin
-  ScreenRect := FCamera;
+  ScreenRect := Camera;
 
   ScreenRect.Inflate(Map.TileWidth div 2, Map.TileHeight div 2);
 
@@ -75,18 +72,18 @@ begin
     for Y := StartY to EndY do
     begin
       StartPoint := TileToScreenCoords(StartX, Y);
-      StartPoint.Offset(-FCamera.Left, -FCamera.Top);
+      StartPoint.Offset(-Camera.Left, -Camera.Top);
       EndPoint := TileToScreenCoords(EndX, Y);
-      EndPoint.Offset(-FCamera.Left, -FCamera.Top);
+      EndPoint.Offset(-Camera.Left, -Camera.Top);
       Canvas.DrawLine(StartPoint, EndPoint, 20);
     end;
 
     for X := StartX to EndX do
     begin
       StartPoint := TileToScreenCoords(X, StartY);
-      StartPoint.Offset(-FCamera.Left, -FCamera.Top);
+      StartPoint.Offset(-Camera.Left, -Camera.Top);
       EndPoint := TileToScreenCoords(X, EndY);
-      EndPoint.Offset(-FCamera.Left, -FCamera.Top);
+      EndPoint.Offset(-Camera.Left, -Camera.Top);
       Canvas.DrawLine(StartPoint, EndPoint, 20);
     end;
   finally
@@ -112,13 +109,13 @@ begin
 
     SetLength(Points, 4);
     Points[0] := PixelToScreenCoords(Bounds.Left, Bounds.Top);
-    Points[0].Offset(-FCamera.Left, -FCamera.Top);
+    Points[0].Offset(-Camera.Left, -Camera.Top);
     Points[1] := PixelToScreenCoords(Bounds.Right, Bounds.Top);
-    Points[1].Offset(-FCamera.Left, -FCamera.Top);
+    Points[1].Offset(-Camera.Left, -Camera.Top);
     Points[2] := PixelToScreenCoords(Bounds.Right, Bounds.Bottom);
-    Points[2].Offset(-FCamera.Left, -FCamera.Top);
+    Points[2].Offset(-Camera.Left, -Camera.Top);
     Points[3] := PixelToScreenCoords(Bounds.Left, Bounds.Bottom);
-    Points[3].Offset(-FCamera.Left, -FCamera.Top);
+    Points[3].Offset(-Camera.Left, -Camera.Top);
 
     Canvas.BeginScene;
     try
@@ -128,7 +125,7 @@ begin
       Position := PixelToScreenCoords(TmxObject.X, TmxObject.Y);
       Position.Offset(-TextWidth / 2, -TmxObject.Height);
       Bounds := TRectF.Create(Position, TextWidth, TmxObject.Height);
-      Bounds.Offset(-FCamera.Left, -FCamera.Top);
+      Bounds.Offset(-Camera.Left, -Camera.Top);
 
       Canvas.FillText(Bounds, TmxObject.Name, False, 100,
         [TFillTextFlag.RightToLeft], TTextAlign.Center, TTextAlign.Center);
@@ -148,13 +145,13 @@ var
   Cell: TTmxCell;
   SrcRect, DstRect: TRectF;
 begin
-  TileCoords := ScreenToTileCoords(FCamera.Left, FCamera.Top);
+  TileCoords := ScreenToTileCoords(Camera.Left, Camera.Top);
   TileRow := Point(Floor(TileCoords.X), Floor(TileCoords.Y));
   StartCoords := TileToScreenCoords(TileRow.X, TileRow.Y);
   StartCoords.Offset(-Map.TileWidth / 2, Map.TileHeight);
 
-  InTopHalf := StartCoords.Y - FCamera.Top > Map.TileHeight / 2;
-  InLeftHalf := FCamera.Left - StartCoords.X < Map.TileWidth / 2;
+  InTopHalf := StartCoords.Y - Camera.Top > Map.TileHeight / 2;
+  InLeftHalf := Camera.Left - StartCoords.X < Map.TileWidth / 2;
 
   if InTopHalf then
   begin
@@ -174,12 +171,12 @@ begin
   Shifted := InTopHalf xor InLeftHalf;
 
   Y := StartCoords.Y * 2;
-  while Y - Map.TileHeight * 2 < FCamera.Bottom * 2 do
+  while Y - Map.TileHeight * 2 < Camera.Bottom * 2 do
   begin
     TileCol := TileRow;
 
     X := StartCoords.X;
-    while X < FCamera.Right do
+    while X < Camera.Right do
     begin
       Cell := Layer.GetCell(TileCol.X, TileCol.Y);
       if Assigned(Cell) then
@@ -189,7 +186,7 @@ begin
         DstRect.Width := Cell.Tile.Width;
         DstRect.Height := Cell.Tile.Height;
 
-        DstRect.Offset(-FCamera.Left, -FCamera.Top);
+        DstRect.Offset(-Camera.Left, -Camera.Top);
         DstRect.Offset(0, -Cell.Tile.Height);
         Canvas.DrawBitmap(Cell.Tile.Image, SrcRect, DstRect, 20);
       end;
