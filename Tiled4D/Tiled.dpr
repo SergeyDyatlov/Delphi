@@ -12,7 +12,8 @@ uses
   TmxOrthogonalRenderer in 'Source\TmxOrthogonalRenderer.pas',
   TmxTileLayer in 'Source\TmxTileLayer.pas',
   TmxTileset in 'Source\TmxTileset.pas',
-  Keyboard in 'Keyboard.pas';
+  Keyboard in 'Keyboard.pas',
+  TmxMapRenderer in 'TmxMapRenderer.pas';
 
 {$R *.res}
 

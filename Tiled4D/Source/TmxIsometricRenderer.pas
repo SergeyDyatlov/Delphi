@@ -4,73 +4,44 @@ interface
 
 uses
   System.Types, System.UITypes, FMX.Types, TmxMap, TmxTileLayer, TmxObjectGroup,
-  FMX.Graphics;
+  TmxTileset, TmxLayer, TmxMapRenderer, FMX.Graphics;
 
 type
-  TTmxIsometricRenderer = class
+  TTmxIsometricRenderer = class(TTmxMapRenderer)
   private
-    FMap: TTmxMap;
     FCamera: TRect;
+  protected
     function ScreenToPixelCoords(X, Y: Single): TPointF;
     function PixelToScreenCoords(X, Y: Single): TPointF;
-    function ScreenToTileCoords(X, Y: Single): TPointF; overload;
-    function ScreenToTileCoords(Coords: TPointF): TPointF; overload;
-    function TileToScreenCoords(X, Y: Single): TPointF; overload;
-    function TileToScreenCoords(Coords: TPointF): TPointF; overload;
+    function ScreenToTileCoords(X, Y: Single): TPointF; override;
+    function TileToScreenCoords(X, Y: Single): TPointF; override;
 
-    procedure DrawGrid(Canvas: TCanvas);
-    procedure DrawTileLayer(Canvas: TCanvas; Layer: TTmxTileLayer);
-    procedure DrawObjectGroup(Canvas: TCanvas; Group: TTmxObjectGroup);
+    procedure DrawGrid(Canvas: TCanvas); override;
+    procedure DrawObjectGroup(Canvas: TCanvas; Group: TTmxObjectGroup); override;
+    procedure DrawTileLayer(Canvas: TCanvas; Layer: TTmxTileLayer); override;
   public
-    constructor Create(AMap: TTmxMap);
+    constructor Create(AMap: TTmxMap); override;
     destructor Destroy; override;
-    procedure Draw(Canvas: TCanvas);
     property Camera: TRect read FCamera write FCamera;
   end;
 
 implementation
 
 uses
-  TmxTileset, TmxLayer, System.Math, System.Math.Vectors;
+  System.Math, System.Math.Vectors;
 
 { TTmxIsometricRenderer }
 
 constructor TTmxIsometricRenderer.Create(AMap: TTmxMap);
 begin
-  FMap := AMap;
+  inherited;
+
 end;
 
 destructor TTmxIsometricRenderer.Destroy;
 begin
 
   inherited;
-end;
-
-procedure TTmxIsometricRenderer.Draw(Canvas: TCanvas);
-var
-  Layer: TTmxLayer;
-  TileLayer: TTmxTileLayer;
-  ObjectGroup: TTmxObjectGroup;
-begin
-  DrawGrid(Canvas);
-  for Layer in FMap.Layers do
-  begin
-    // if Layer.Visible then
-    // begin
-    case Layer.LayerType of
-      ltTileLayer:
-        begin
-          TileLayer := Layer as TTmxTileLayer;
-          DrawTileLayer(Canvas, TileLayer);
-        end;
-      ltObjectGroup:
-        begin
-          ObjectGroup := Layer as TTmxObjectGroup;
-          DrawObjectGroup(Canvas, ObjectGroup);
-        end;
-    end;
-    // end;
-  end;
 end;
 
 procedure TTmxIsometricRenderer.DrawGrid(Canvas: TCanvas);
@@ -85,7 +56,7 @@ var
 begin
   ScreenRect := FCamera;
 
-  ScreenRect.Inflate(FMap.TileWidth div 2, FMap.TileHeight div 2);
+  ScreenRect.Inflate(Map.TileWidth div 2, Map.TileHeight div 2);
 
   StartX := Trunc(ScreenToTileCoords(ScreenRect.Left, ScreenRect.Top).X);
   StartY := Trunc(ScreenToTileCoords(ScreenRect.Right, ScreenRect.Top).Y);
@@ -94,8 +65,8 @@ begin
 
   StartX := Max(0, StartX);
   StartY := Max(0, StartY);
-  EndX := Min(FMap.Width, EndX);
-  EndY := Min(FMap.Height, EndY);
+  EndX := Min(Map.Width, EndX);
+  EndY := Min(Map.Height, EndY);
 
   Canvas.BeginScene;
   CanvasState := Canvas.SaveState;
@@ -181,30 +152,30 @@ begin
   TileCoords := ScreenToTileCoords(FCamera.Left, FCamera.Top);
   TileRow := Point(Floor(TileCoords.X), Floor(TileCoords.Y));
   StartCoords := TileToScreenCoords(TileRow.X, TileRow.Y);
-  StartCoords.Offset(-FMap.TileWidth / 2, FMap.TileHeight);
+  StartCoords.Offset(-Map.TileWidth / 2, Map.TileHeight);
 
-  InTopHalf := StartCoords.Y - FCamera.Top > FMap.TileHeight / 2;
-  InLeftHalf := FCamera.Left - StartCoords.X < FMap.TileWidth / 2;
+  InTopHalf := StartCoords.Y - FCamera.Top > Map.TileHeight / 2;
+  InLeftHalf := FCamera.Left - StartCoords.X < Map.TileWidth / 2;
 
   if InTopHalf then
   begin
     if InLeftHalf then
     begin
       TileRow.Offset(-1, 0);
-      StartCoords.Offset(-FMap.TileWidth / 2, 0);
+      StartCoords.Offset(-Map.TileWidth / 2, 0);
     end
     else
     begin
       TileRow.Offset(0, -1);
-      StartCoords.Offset(FMap.TileWidth / 2, 0);
+      StartCoords.Offset(Map.TileWidth / 2, 0);
     end;
-    StartCoords.Offset(0, -FMap.TileHeight / 2);
+    StartCoords.Offset(0, -Map.TileHeight / 2);
   end;
 
   Shifted := InTopHalf xor InLeftHalf;
 
   Y := StartCoords.Y * 2;
-  while Y - FMap.TileHeight * 2 < FCamera.Bottom * 2 do
+  while Y - Map.TileHeight * 2 < FCamera.Bottom * 2 do
   begin
     TileCol := TileRow;
 
@@ -226,22 +197,22 @@ begin
 
       Inc(TileCol.X);
       Dec(TileCol.Y);
-      X := X + FMap.TileWidth;
+      X := X + Map.TileWidth;
     end;
 
     if not Shifted then
     begin
       Inc(TileRow.X);
-      StartCoords.Offset(FMap.TileWidth / 2, 0);
+      StartCoords.Offset(Map.TileWidth / 2, 0);
       Shifted := True;
     end
     else
     begin
       Inc(TileRow.Y);
-      StartCoords.Offset(-FMap.TileWidth / 2, 0);
+      StartCoords.Offset(-Map.TileWidth / 2, 0);
       Shifted := False;
     end;
-    Y := Y + FMap.TileHeight;
+    Y := Y + Map.TileHeight;
   end;
 end;
 
@@ -250,13 +221,13 @@ var
   TileX, TileY: Single;
   OriginX: Single;
 begin
-  OriginX := FMap.Height * FMap.TileWidth / 2;
+  OriginX := Map.Height * Map.TileWidth / 2;
 
-  TileX := X / FMap.TileHeight;
-  TileY := Y / FMap.TileHeight;
+  TileX := X / Map.TileHeight;
+  TileY := Y / Map.TileHeight;
 
-  Result.X := (TileX - TileY) * FMap.TileWidth / 2 + OriginX;
-  Result.Y := (TileX + TileY) * FMap.TileHeight / 2;
+  Result.X := (TileX - TileY) * Map.TileWidth / 2 + OriginX;
+  Result.Y := (TileX + TileY) * Map.TileHeight / 2;
 end;
 
 function TTmxIsometricRenderer.ScreenToPixelCoords(X, Y: Single): TPointF;
@@ -264,18 +235,13 @@ var
   TileX, TileY: Single;
   OriginX: Single;
 begin
-  OriginX := X - FMap.Height * FMap.TileWidth / 2;
+  OriginX := X - Map.Height * Map.TileWidth / 2;
 
-  TileX := OriginX / FMap.TileWidth;
-  TileY := Y / FMap.TileHeight;
+  TileX := OriginX / Map.TileWidth;
+  TileY := Y / Map.TileHeight;
 
-  Result.X := (TileX + TileY) * FMap.TileHeight;
-  Result.Y := (TileY - TileX) * FMap.TileHeight;
-end;
-
-function TTmxIsometricRenderer.ScreenToTileCoords(Coords: TPointF): TPointF;
-begin
-  Result := ScreenToTileCoords(Coords.X, Coords.Y);
+  Result.X := (TileX + TileY) * Map.TileHeight;
+  Result.Y := (TileY - TileX) * Map.TileHeight;
 end;
 
 function TTmxIsometricRenderer.ScreenToTileCoords(X, Y: Single): TPointF;
@@ -283,10 +249,10 @@ var
   TileX, TileY: Single;
   OriginX: Single;
 begin
-  OriginX := X - FMap.Height * FMap.TileWidth / 2;
+  OriginX := X - Map.Height * Map.TileWidth / 2;
 
-  TileX := OriginX / FMap.TileWidth;
-  TileY := Y / FMap.TileHeight;
+  TileX := OriginX / Map.TileWidth;
+  TileY := Y / Map.TileHeight;
 
   Result.X := TileX + TileY;
   Result.Y := TileY - TileX;
@@ -296,15 +262,10 @@ function TTmxIsometricRenderer.TileToScreenCoords(X, Y: Single): TPointF;
 var
   OriginX: Single;
 begin
-  OriginX := FMap.Height * FMap.TileWidth / 2;
+  OriginX := Map.Height * Map.TileWidth / 2;
 
-  Result.X := (X - Y) * FMap.TileWidth / 2 + OriginX;
-  Result.Y := (X + Y) * FMap.TileHeight / 2;
-end;
-
-function TTmxIsometricRenderer.TileToScreenCoords(Coords: TPointF): TPointF;
-begin
-  Result := TileToScreenCoords(Coords.X, Coords.Y);
+  Result.X := (X - Y) * Map.TileWidth / 2 + OriginX;
+  Result.Y := (X + Y) * Map.TileHeight / 2;
 end;
 
 end.
