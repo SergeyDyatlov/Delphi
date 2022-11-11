@@ -71,7 +71,8 @@ begin
   Canvas.BeginScene;
   CanvasState := Canvas.SaveState;
   try
-    Brush := TStrokeBrush.Create(TBrushKind.Solid, TAlphaColors.Green);
+    Canvas.Stroke.Color := TAlphaColors.Green;
+    Canvas.Stroke.Kind := TBrushKind.Solid;
 
     for Y := StartY to EndY do
     begin
@@ -79,7 +80,7 @@ begin
       StartPoint.Offset(-FCamera.Left, -FCamera.Top);
       EndPoint := TileToScreenCoords(EndX, Y);
       EndPoint.Offset(-FCamera.Left, -FCamera.Top);
-      Canvas.DrawLine(StartPoint, EndPoint, 20, Brush);
+      Canvas.DrawLine(StartPoint, EndPoint, 20);
     end;
 
     for X := StartX to EndX do
@@ -88,7 +89,7 @@ begin
       StartPoint.Offset(-FCamera.Left, -FCamera.Top);
       EndPoint := TileToScreenCoords(X, EndY);
       EndPoint.Offset(-FCamera.Left, -FCamera.Top);
-      Canvas.DrawLine(StartPoint, EndPoint, 20, Brush);
+      Canvas.DrawLine(StartPoint, EndPoint, 20);
     end;
   finally
     Canvas.RestoreState(CanvasState);

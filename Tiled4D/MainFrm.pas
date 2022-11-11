@@ -75,4 +75,8 @@ begin
   Invalidate;
 end;
 
+initialization
+
+ReportMemoryLeaksOnShutdown := True;
+
 end.
