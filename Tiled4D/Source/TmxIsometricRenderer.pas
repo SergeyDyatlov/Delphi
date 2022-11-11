@@ -50,8 +50,6 @@ var
   StartX, StartY, EndX, EndY: Integer;
   StartPoint, EndPoint: TPointF;
   X, Y: Integer;
-  StartCoords: TPoint;
-  Brush: TStrokeBrush;
   CanvasState: TCanvasSaveState;
 begin
   ScreenRect := FCamera;
