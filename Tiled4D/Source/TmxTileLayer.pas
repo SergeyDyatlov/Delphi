@@ -18,6 +18,8 @@ type
     property Tile: TTmxTile read GetTile;
   end;
 
+  TLayerDataFormat = (ldfCSV, ldfBase64, ldfBase64Zlib);
+
   TTmxTileLayer = class(TTmxLayer)
   private
     FGrid: array of array of TTmxCell;

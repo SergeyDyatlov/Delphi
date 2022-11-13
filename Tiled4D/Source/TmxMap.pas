@@ -3,8 +3,8 @@ unit TmxMap;
 interface
 
 uses
-  Xml.XMLIntf, XMLDoc, TmxLayer, TmxTileLayer, TmxTileset, TmxObjectGroup,
-  System.Generics.Collections;
+  System.SysUtils, System.Classes, Xml.XMLIntf, XMLDoc, TmxLayer, TmxTileLayer,
+  TmxTileset, TmxObjectGroup, System.Generics.Collections;
 
 type
   TTmxMap = class
@@ -22,7 +22,8 @@ type
     procedure ParseTilesetImage(Node: IXMLNode; Tileset: TTmxTileset);
     procedure ParseTileLayer(Node: IXMLNode);
     procedure ParseTileLayerData(Node: IXMLNode; Layer: TTmxTileLayer);
-    procedure DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string);
+    procedure DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string;
+      DataFormat: TLayerDataFormat);
     procedure DecodeCSVLayerData(Layer: TTmxTileLayer; Text: string);
     function GetTilesetByGid(Gid: Cardinal): TTmxTileset;
     procedure ParseObjectGroup(Node: IXMLNode);
@@ -39,12 +40,19 @@ type
     property Layers: TObjectList<TTmxLayer> read FLayers;
   end;
 
+  EDecompressionError = class(Exception);
+  EEncodingError = class(Exception);
+
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.IOUtils, TmxImage;
+  System.IOUtils, TmxImage, System.NetEncoding, System.ZLib;
 
 { TTmxMapReader }
+
+resourcestring
+  sCompressionMethodNotSupported = 'Compression method "%s" not supported';
+  sUnknownEncoding = 'Unknown encoding: %s';
 
 constructor TTmxMap.Create;
 begin
@@ -52,9 +60,51 @@ begin
   FLayers := TObjectList<TTmxLayer>.Create(True);
 end;
 
-procedure TTmxMap.DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string);
+procedure TTmxMap.DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string;
+  DataFormat: TLayerDataFormat);
+var
+  Bytes: TArray<Byte>;
+  Input, Output: TStringStream;
+  BinaryReader: TBinaryReader;
+  X, Y: Integer;
+  Gid, TileId: Cardinal;
+  Tileset: TTmxTileset;
+  Cell: TTmxCell;
 begin
+  Bytes := TNetEncoding.Base64.DecodeStringToBytes(Text);
 
+  Input := TStringStream.Create(Bytes);
+  Output := TStringStream.Create('');
+  try
+    if DataFormat = ldfBase64Zlib then
+      ZDecompressStream(Input, Output)
+    else
+      Output.LoadFromStream(Input);
+
+    Output.Position := 0;
+    BinaryReader := TBinaryReader.Create(Output);
+    try
+      for Y := 0 to Layer.Height - 1 do
+      begin
+        for X := 0 to Layer.Width - 1 do
+        begin
+          Gid := BinaryReader.ReadUInt32;
+          if Gid <> 0 then
+          begin
+            Tileset := GetTilesetByGid(Gid);
+            TileId := Gid - Tileset.FirstGId;
+            Cell := TTmxCell.Create(Tileset, TileId);
+            Layer.SetCell(Cell, X, Y);
+          end;
+        end;
+      end;
+    finally
+      BinaryReader.Free;
+    end;
+  finally
+    Output.Free;
+    Input.Free;
+  end;
 end;
 
 procedure TTmxMap.DecodeCSVLayerData(Layer: TTmxTileLayer; Text: string);
@@ -161,14 +211,31 @@ end;
 procedure TTmxMap.ParseTileLayerData(Node: IXMLNode; Layer: TTmxTileLayer);
 var
   Encoding: string;
+  Compression: string;
+  DataFormat: TLayerDataFormat;
 begin
+  Assert(Node.NodeName = 'data');
   if Node.HasAttribute('encoding') then
   begin
     Encoding := Node.Attributes['encoding'];
-    if SameText(Encoding, 'base64') then
-      DecodeBinaryLayerData(Layer, Node.Text)
-    else if SameText(Encoding, 'csv') then
-      DecodeCSVLayerData(Layer, Node.Text);
+    if SameText(Encoding, 'csv') then
+      DecodeCSVLayerData(Layer, Node.Text)
+    else if SameText(Encoding, 'base64') then
+    begin
+      DataFormat := ldfBase64;
+      if Node.HasAttribute('compression') then
+      begin
+        Compression := Node.Attributes['compression'];
+        if SameText(Compression, 'zlib') then
+          DataFormat := ldfBase64Zlib
+        else
+          raise EDecompressionError.CreateFmt(sCompressionMethodNotSupported,
+            [Compression]);
+      end;
+      DecodeBinaryLayerData(Layer, Node.Text, DataFormat);
+    end
+    else
+      raise EEncodingError.CreateFmt(sUnknownEncoding, [Encoding]);
   end;
 end;
 
@@ -233,11 +300,13 @@ begin
   if Node.HasAttribute('type') then
     TmxObject.ObjectType := Node.Attributes['type'];
   if Node.HasAttribute('gid') then
-    TmxObject.GId := Node.Attributes['gid'];
+    TmxObject.Gid := Node.Attributes['gid'];
   TmxObject.X := Node.Attributes['x'];
   TmxObject.Y := Node.Attributes['y'];
-  TmxObject.Width := Node.Attributes['width'];
-  TmxObject.Height := Node.Attributes['height'];
+  if Node.HasAttribute('width') then
+    TmxObject.Width := Node.Attributes['width'];
+  if Node.HasAttribute('height') then
+    TmxObject.Height := Node.Attributes['height'];
   Group.Objects.Add(TmxObject);
 end;
 
