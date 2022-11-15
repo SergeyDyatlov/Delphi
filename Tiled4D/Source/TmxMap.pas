@@ -205,6 +205,11 @@ begin
   else
     Layer.Visible := True;
 
+  if Node.HasAttribute('opacity') then
+    Layer.Opacity := Node.Attributes['opacity']
+  else
+    Layer.Opacity := 1;
+
   ChildNode := Node.ChildNodes.First;
   while Assigned(ChildNode) do
   begin
@@ -283,6 +288,11 @@ begin
     ObjectGroup.Visible := Node.Attributes['visible']
   else
     ObjectGroup.Visible := True;
+
+  if Node.HasAttribute('opacity') then
+    ObjectGroup.Opacity := Node.Attributes['opacity']
+  else
+    ObjectGroup.Opacity := 1;
 
   ChildNode := Node.ChildNodes.First;
   while Assigned(ChildNode) do

@@ -20,7 +20,8 @@ type
     procedure DrawGrid(Canvas: TCanvas); virtual;
     procedure DrawObjectGroup(Canvas: TCanvas; Group: TTmxObjectGroup); virtual;
     procedure DrawTileLayer(Canvas: TCanvas; Layer: TTmxTileLayer); virtual;
-    procedure DrawCell(Canvas: TCanvas; Cell: TTmxCell; ScreenRect: TRectF);
+    procedure DrawCell(Canvas: TCanvas; Cell: TTmxCell; ScreenRect: TRectF;
+      Opacity: Single);
   public
     constructor Create(AMap: TTmxMap); virtual;
     procedure Draw(Canvas: TCanvas); virtual;
@@ -70,7 +71,7 @@ begin
 end;
 
 procedure TTmxMapRenderer.DrawCell(Canvas: TCanvas; Cell: TTmxCell;
-  ScreenRect: TRectF);
+  ScreenRect: TRectF; Opacity: Single);
 var
   SrcRect, DstRect: TRectF;
   Bitmap: TBitmap;
@@ -88,7 +89,7 @@ begin
     if Cell.FlippedVerticaly then
       Bitmap.FlipVertical;
 
-    Canvas.DrawBitmap(Bitmap, SrcRect, DstRect, 1);
+    Canvas.DrawBitmap(Bitmap, SrcRect, DstRect, Opacity);
   finally
     Bitmap.Free;
   end;

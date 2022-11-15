@@ -58,7 +58,7 @@ begin
     begin
       Position := PointF(TmxObject.X, TmxObject.Y);
       DstRect := TRectF.Create(Position, TmxObject.Width, TmxObject.Height);
-      DrawCell(Canvas, TmxObject.Cell, DstRect);
+      DrawCell(Canvas, TmxObject.Cell, DstRect, Group.Opacity);
     end;
   end;
 end;
@@ -82,7 +82,7 @@ begin
       begin
         Position := PointF(X * Map.TileWidth, Y * Map.TileHeight);
         DstRect := TRectF.Create(Position, Cell.Tile.Width, Cell.Tile.Height);
-        DrawCell(Canvas, Cell, DstRect);
+        DrawCell(Canvas, Cell, DstRect, Layer.Opacity);
       end;
       Inc(X);
     end;

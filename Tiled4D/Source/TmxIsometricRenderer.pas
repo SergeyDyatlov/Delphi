@@ -184,7 +184,7 @@ begin
       begin
         Position := PointF(X, Y / 2);
         DstRect := TRectF.Create(Position, Cell.Tile.Width, Cell.Tile.Height);
-        DrawCell(Canvas, Cell, DstRect);
+        DrawCell(Canvas, Cell, DstRect, Layer.Opacity);
       end;
 
       Inc(TileCol.X);

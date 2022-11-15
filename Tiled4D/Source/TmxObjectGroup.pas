@@ -40,8 +40,8 @@ type
 
   TTmxObjectGroup = class(TTmxLayer)
   private
-    FObjects: TObjectList<TTmxObject>;
     FName: string;
+    FObjects: TObjectList<TTmxObject>;
   public
     constructor Create(const AName: string); override;
     destructor Destroy; override;
