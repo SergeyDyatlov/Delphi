@@ -78,5 +78,6 @@ end;
 initialization
 
 ReportMemoryLeaksOnShutdown := True;
+FormatSettings.DecimalSeparator := '.';
 
 end.
