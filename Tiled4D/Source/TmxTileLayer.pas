@@ -18,6 +18,7 @@ type
     constructor Create; overload;
     constructor Create(ATileId: Integer; ATileset: TTmxTileset); overload;
     procedure SetTile(ATileId: Integer; ATileset: TTmxTileset);
+    function IsEmpty: Boolean;
     property Tileset: TTmxTileset read FTileset write FTileset;
     property TileId: Integer read FTileId write FTileId;
     property Tile: TTmxTile read GetTile;
@@ -71,6 +72,11 @@ begin
     Result := FTileset.Tiles[FTileId]
   else
     Result := nil;
+end;
+
+function TTmxCell.IsEmpty: Boolean;
+begin
+  Result := not Assigned(FTileset);
 end;
 
 procedure TTmxCell.SetTile(ATileId: Integer; ATileset: TTmxTileset);

@@ -180,7 +180,7 @@ begin
     while X < Camera.Right do
     begin
       Cell := Layer.GetCell(TileCol.X, TileCol.Y);
-      if Assigned(Cell.Tileset) then
+      if not Cell.IsEmpty then
       begin
         Position := PointF(X, Y / 2);
         DstRect := TRectF.Create(Position, Cell.Tile.Width, Cell.Tile.Height);

@@ -54,7 +54,7 @@ var
 begin
   for TmxObject in Group.Objects do
   begin
-    if Assigned(TmxObject.Cell.Tileset) then
+    if not TmxObject.Cell.IsEmpty then
     begin
       Position := PointF(TmxObject.X, TmxObject.Y);
       DstRect := TRectF.Create(Position, TmxObject.Width, TmxObject.Height);
@@ -78,7 +78,7 @@ begin
     while X < Ceil(Camera.Right / Map.TileWidth) do
     begin
       Cell := Layer.GetCell(X, Y);
-      if Assigned(Cell.Tileset) then
+      if not Cell.IsEmpty then
       begin
         Position := PointF(X * Map.TileWidth, Y * Map.TileHeight);
         DstRect := TRectF.Create(Position, Cell.Tile.Width, Cell.Tile.Height);
