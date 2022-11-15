@@ -15,14 +15,16 @@ type
     FImage: TBitmap;
     FWidth: Integer;
     FHeight: Integer;
+    FSource: string;
   public
     constructor Create(AId: Integer; ATileset: TTmxTileset);
     destructor Destroy; override;
     property Id: Integer read FId write FId;
     property Tileset: TTmxTileset read FTileset write FTileset;
-    property Image: TBitmap read FImage write FImage;
-    property Width: Integer read FWidth;
-    property Height: Integer read FHeight;
+    property Bitmap: TBitmap read FImage write FImage;
+    property Width: Integer read FWidth write FWidth;
+    property Height: Integer read FHeight write FHeight;
+    property Source: string read FSource write FSource;
   end;
 
   TTmxTileDictionary = TObjectDictionary<Integer, TTmxTile>;
@@ -106,10 +108,10 @@ begin
         DstRect.Width := FTileWidth;
         DstRect.Height := FTileHeight;
 
-        Tile.Image.SetSize(FTileWidth, FTileHeight);
-        Tile.Image.Canvas.BeginScene;
-        Tile.Image.Canvas.DrawBitmap(Image, SrcRect, DstRect, 20);
-        Tile.Image.Canvas.EndScene;
+        Tile.Bitmap.SetSize(FTileWidth, FTileHeight);
+        Tile.Bitmap.Canvas.BeginScene;
+        Tile.Bitmap.Canvas.DrawBitmap(Image, SrcRect, DstRect, 20);
+        Tile.Bitmap.Canvas.EndScene;
 
         Inc(TileId);
       end;

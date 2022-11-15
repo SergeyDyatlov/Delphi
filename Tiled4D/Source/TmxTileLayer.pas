@@ -10,12 +10,23 @@ type
   private
     FTileset: TTmxTileset;
     FTileId: Integer;
+    FFlippedDiagonaly: Boolean;
+    FFlippedHorizontaly: Boolean;
+    FFlippedVerticaly: Boolean;
     function GetTile: TTmxTile;
   public
-    constructor Create(ATileset: TTmxTileset; ATileId: Integer);
+    constructor Create; overload;
+    constructor Create(ATileId: Integer; ATileset: TTmxTileset); overload;
+    procedure SetTile(ATileId: Integer; ATileset: TTmxTileset);
     property Tileset: TTmxTileset read FTileset write FTileset;
     property TileId: Integer read FTileId write FTileId;
     property Tile: TTmxTile read GetTile;
+    property FlippedDiagonaly: Boolean read FFlippedDiagonaly
+      write FFlippedDiagonaly;
+    property FlippedHorizontaly: Boolean read FFlippedHorizontaly
+      write FFlippedHorizontaly;
+    property FlippedVerticaly: Boolean read FFlippedVerticaly
+      write FFlippedVerticaly;
   end;
 
   TLayerDataFormat = (ldfCSV, ldfBase64, ldfBase64Zlib);
@@ -42,18 +53,30 @@ implementation
 
 { TTmxCell }
 
-constructor TTmxCell.Create(ATileset: TTmxTileset; ATileId: Integer);
+constructor TTmxCell.Create(ATileId: Integer; ATileset: TTmxTileset);
 begin
-  FTileset := ATileset;
+  Create;
   FTileId := ATileId;
+  FTileset := ATileset;
+end;
+
+constructor TTmxCell.Create;
+begin
+
 end;
 
 function TTmxCell.GetTile: TTmxTile;
 begin
-  if FTileset.Tiles.ContainsKey(FTileId) then
+  if Assigned(FTileset) then
     Result := FTileset.Tiles[FTileId]
   else
     Result := nil;
+end;
+
+procedure TTmxCell.SetTile(ATileId: Integer; ATileset: TTmxTileset);
+begin
+  FTileId := ATileId;
+  FTileset := ATileset;
 end;
 
 { TTmxTileLayer }

@@ -6,6 +6,11 @@ uses
   System.SysUtils, System.Classes, Xml.XMLIntf, XMLDoc, TmxLayer, TmxTileLayer,
   TmxTileset, TmxObjectGroup, System.Generics.Collections;
 
+const
+  FLIPPED_HORIZONTALLY_FLAG = $80000000;
+  FLIPPED_VERTICALLY_FLAG = $40000000;
+  FLIPPED_DIAGONALLY_FLAG = $20000000;
+
 type
   TTmxMap = class
   private
@@ -19,6 +24,7 @@ type
     procedure ParseMap(Node: IXMLNode);
     procedure ParseTileset(Node: IXMLNode);
     procedure ParseTilesetTile(Node: IXMLNode; Tileset: TTmxTileset);
+    procedure ParseTilesetTileImage(Node: IXMLNode; Tile: TTmxTile);
     procedure ParseTilesetImage(Node: IXMLNode; Tileset: TTmxTileset);
     procedure ParseTileLayer(Node: IXMLNode);
     procedure ParseTileLayerData(Node: IXMLNode; Layer: TTmxTileLayer);
@@ -46,7 +52,7 @@ type
 implementation
 
 uses
-  System.IOUtils, TmxImage, System.NetEncoding, System.ZLib;
+  System.IOUtils, TmxImage, System.NetEncoding, System.ZLib, System.Variants;
 
 { TTmxMapReader }
 
@@ -93,7 +99,7 @@ begin
           begin
             Tileset := GetTilesetByGid(Gid);
             TileId := Gid - Tileset.FirstGId;
-            Cell := TTmxCell.Create(Tileset, TileId);
+            Cell := TTmxCell.Create(TileId, Tileset);
             Layer.SetCell(Cell, X, Y);
           end;
         end;
@@ -131,7 +137,7 @@ begin
         begin
           Tileset := GetTilesetByGid(Gid);
           TileId := Gid - Tileset.FirstGId;
-          Cell := TTmxCell.Create(Tileset, TileId);
+          Cell := TTmxCell.Create(TileId, Tileset);
           Layer.SetCell(Cell, X, Y);
         end;
       end;
@@ -170,6 +176,7 @@ var
   Document: IXMLDocument;
   Node: IXMLNode;
 begin
+  // NullStrictConvert := False;
   FFilePath := ExtractFilePath(FileName);
   Document := TXMLDocument.Create(nil);
   try
@@ -290,23 +297,48 @@ end;
 procedure TTmxMap.ParseObjectGroupObject(Node: IXMLNode;
   Group: TTmxObjectGroup);
 var
+  Id: Integer;
   TmxObject: TTmxObject;
+  Tileset: TTmxTileset;
+  TileId: Cardinal;
+  FlippedDiagonaly: Boolean;
+  FlippedHorizontaly: Boolean;
+  FlippedVerticaly: Boolean;
 begin
-  TmxObject := TTmxObject.Create;
-  if Node.HasAttribute('id') then
-    TmxObject.Id := Node.Attributes['id'];
+  Id := Node.Attributes['id'];
+  TmxObject := TTmxObject.Create(Id, Group);
   if Node.HasAttribute('name') then
     TmxObject.Name := Node.Attributes['name'];
   if Node.HasAttribute('type') then
     TmxObject.ObjectType := Node.Attributes['type'];
   if Node.HasAttribute('gid') then
+  begin
     TmxObject.Gid := Node.Attributes['gid'];
+
+    FlippedDiagonaly := (TmxObject.Gid and FLIPPED_DIAGONALLY_FLAG) <> 0;
+    FlippedHorizontaly := (TmxObject.Gid and FLIPPED_HORIZONTALLY_FLAG) <> 0;
+    FlippedVerticaly := (TmxObject.Gid and FLIPPED_VERTICALLY_FLAG) <> 0;
+
+    TmxObject.Gid := TmxObject.Gid and not(FLIPPED_HORIZONTALLY_FLAG or
+      FLIPPED_VERTICALLY_FLAG or FLIPPED_DIAGONALLY_FLAG);
+
+    Tileset := GetTilesetByGid(TmxObject.GId);
+    TileId := TmxObject.Gid - Tileset.FirstGId;
+    TmxObject.Cell.SetTile(TileId, Tileset);
+
+    TmxObject.Cell.FlippedDiagonaly := FlippedDiagonaly;
+    TmxObject.Cell.FlippedHorizontaly := FlippedHorizontaly;
+    TmxObject.Cell.FlippedVerticaly := FlippedVerticaly;
+  end;
   TmxObject.X := Node.Attributes['x'];
   TmxObject.Y := Node.Attributes['y'];
   if Node.HasAttribute('width') then
     TmxObject.Width := Node.Attributes['width'];
   if Node.HasAttribute('height') then
     TmxObject.Height := Node.Attributes['height'];
+  if Node.HasAttribute('rotation') then
+    TmxObject.Rotation := Node.Attributes['rotation'];
+
   Group.Objects.Add(TmxObject);
 end;
 
@@ -329,7 +361,8 @@ begin
     Tileset.Name := Node.Attributes['name'];
     Tileset.TileWidth := Node.Attributes['tilewidth'];
     Tileset.TileHeight := Node.Attributes['tileheight'];
-    Tileset.Columns := Node.Attributes['columns'];
+    if Node.HasAttribute('columns') then
+      Tileset.Columns := Node.Attributes['columns'];
     FTilesets.Add(FirstGId, Tileset);
 
     ChildNode := Node.ChildNodes.First;
@@ -369,11 +402,22 @@ begin
   ChildNode := Node.ChildNodes.First;
   while Assigned(ChildNode) do
   begin
-    // if SameText(ChildNode.NodeName, 'image') then
-    // ParseImage(ChildNode, Tileset);
+    if SameText(ChildNode.NodeName, 'image') then
+      ParseTilesetTileImage(ChildNode, Tile);
 
     ChildNode := ChildNode.NextSibling;
   end;
+end;
+
+procedure TTmxMap.ParseTilesetTileImage(Node: IXMLNode; Tile: TTmxTile);
+var
+  Source: string;
+begin
+  Source := Node.Attributes['source'];
+  Tile.Source := TPath.Combine(FFilePath, Source);
+  Tile.Width := Node.Attributes['width'];
+  Tile.Height := Node.Attributes['height'];
+  Tile.Bitmap.LoadFromFile(Tile.Source);
 end;
 
 end.

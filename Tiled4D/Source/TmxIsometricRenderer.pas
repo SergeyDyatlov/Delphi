@@ -143,7 +143,8 @@ var
   InTopHalf, InLeftHalf, Shifted: Boolean;
   Y, X: Double;
   Cell: TTmxCell;
-  SrcRect, DstRect: TRectF;
+  Position: TPointF;
+  DstRect: TRectF;
 begin
   TileCoords := ScreenToTileCoords(Camera.Left, Camera.Top);
   TileRow := Point(Floor(TileCoords.X), Floor(TileCoords.Y));
@@ -179,16 +180,11 @@ begin
     while X < Camera.Right do
     begin
       Cell := Layer.GetCell(TileCol.X, TileCol.Y);
-      if Assigned(Cell) then
+      if Assigned(Cell.Tileset) then
       begin
-        SrcRect := Cell.Tile.Image.Bounds;
-        DstRect := TRectF.Create(PointF(X, Y / 2));
-        DstRect.Width := Cell.Tile.Width;
-        DstRect.Height := Cell.Tile.Height;
-
-        DstRect.Offset(-Camera.Left, -Camera.Top);
-        DstRect.Offset(0, -Cell.Tile.Height);
-        Canvas.DrawBitmap(Cell.Tile.Image, SrcRect, DstRect, 20);
+        Position := PointF(X, Y / 2);
+        DstRect := TRectF.Create(Position, Cell.Tile.Width, Cell.Tile.Height);
+        DrawCell(Canvas, Cell, DstRect);
       end;
 
       Inc(TileCol.X);
