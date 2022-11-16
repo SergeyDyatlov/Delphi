@@ -5,7 +5,8 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes,
   System.Variants, FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics,
-  FMX.Dialogs, TmxMap, TmxIsometricRenderer, Keyboard;
+  FMX.Dialogs, TmxMap, TmxMapRenderer, TmxIsometricRenderer,
+  TmxOrthogonalRenderer, Keyboard;
 
 type
   TMainForm = class(TForm)
@@ -17,7 +18,7 @@ type
     procedure FormResize(Sender: TObject);
   private
     FMap: TTmxMap;
-    FRenderer: TTmxIsometricRenderer;
+    FRenderer: TTmxMapRenderer;
     { Private declarations }
   public
     { Public declarations }
@@ -29,16 +30,21 @@ var
 implementation
 
 uses
-  Winapi.Windows, System.Diagnostics;
+  Winapi.Windows, System.Diagnostics, Math;
 
 {$R *.fmx}
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FMap := TTmxMap.Create;
-  FMap.LoadFromFile('Maps\Cave\abandoned_mine.tmx');
+//  FMap.LoadFromFile('Maps\Cave\abandoned_mine.tmx');
+  FMap.LoadFromFile('Maps\sticker-knight\map\sandbox.tmx');
 
-  FRenderer := TTmxIsometricRenderer.Create(FMap);
+  if SameText(FMap.Orientation, 'isometric') then
+    FRenderer := TTmxIsometricRenderer.Create(FMap)
+  else if SameText(FMap.Orientation, 'orthogonal') then
+    FRenderer := TTmxOrthogonalRenderer.Create(FMap);
+
   FRenderer.Camera := TRect.Create(Point(0, 0), 960, 540);
 end;
 
@@ -51,7 +57,7 @@ end;
 procedure TMainForm.FormPaint(Sender: TObject; Canvas: TCanvas;
   const ARect: TRectF);
 begin
-//  Canvas.Clear(TAlphaColors.Black);
+  Canvas.Clear(TAlphaColors.Aquamarine);
   FRenderer.Draw(Canvas);
 end;
 

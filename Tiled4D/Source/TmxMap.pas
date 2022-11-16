@@ -15,6 +15,7 @@ type
   TTmxMap = class
   private
     FFilePath: string;
+    FOrientation: string;
     FWidth: Integer;
     FHeight: Integer;
     FTileWidth: Integer;
@@ -38,6 +39,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure LoadFromFile(const FileName: string);
+    property Orientation: string read FOrientation write FOrientation;
     property Width: Integer read FWidth;
     property Height: Integer read FHeight;
     property TileWidth: Integer read FTileWidth;
@@ -263,6 +265,7 @@ procedure TTmxMap.ParseMap(Node: IXMLNode);
 var
   ChildNode: IXMLNode;
 begin
+  FOrientation := Node.Attributes['orientation'];
   FWidth := Node.Attributes['width'];
   FHeight := Node.Attributes['height'];
   FTileWidth := Node.Attributes['tilewidth'];
