@@ -94,13 +94,15 @@ begin
       begin
         for X := 0 to Layer.Width - 1 do
         begin
+          Cell := TTmxCell.Create;
+          Layer.SetCell(Cell, X, Y);
+
           Gid := BinaryReader.ReadUInt32;
           if Gid <> 0 then
           begin
             Tileset := GetTilesetByGid(Gid);
             TileId := Gid - Tileset.FirstGId;
-            Cell := TTmxCell.Create(TileId, Tileset);
-            Layer.SetCell(Cell, X, Y);
+            Cell.SetTile(TileId, Tileset);
           end;
         end;
       end;
@@ -132,13 +134,15 @@ begin
       Tokens := List[Y].Split([',']);
       for X := 0 to Layer.Width - 1 do
       begin
+        Cell := TTmxCell.Create;
+        Layer.SetCell(Cell, X, Y);
+
         Gid := Tokens[X].ToInteger;
         if Gid <> 0 then
         begin
           Tileset := GetTilesetByGid(Gid);
           TileId := Gid - Tileset.FirstGId;
-          Cell := TTmxCell.Create(TileId, Tileset);
-          Layer.SetCell(Cell, X, Y);
+          Cell.SetTile(TileId, Tileset);
         end;
       end;
     end;
@@ -177,6 +181,10 @@ var
   Node: IXMLNode;
 begin
   // NullStrictConvert := False;
+
+  FTilesets.Clear;
+  FLayers.Clear;
+
   FFilePath := ExtractFilePath(FileName);
   Document := TXMLDocument.Create(nil);
   try

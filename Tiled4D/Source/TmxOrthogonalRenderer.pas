@@ -78,7 +78,7 @@ begin
     while X < Ceil(Camera.Right / Map.TileWidth) do
     begin
       Cell := Layer.GetCell(X, Y);
-      if not Cell.IsEmpty then
+      if Assigned(Cell) and not Cell.IsEmpty then
       begin
         Position := PointF(X * Map.TileWidth, Y * Map.TileHeight);
         DstRect := TRectF.Create(Position, Cell.Tile.Width, Cell.Tile.Height);
