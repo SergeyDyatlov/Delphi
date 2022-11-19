@@ -35,6 +35,8 @@ type
     function GetTilesetByGid(Gid: Cardinal): TTmxTileset;
     procedure ParseObjectGroup(Node: IXMLNode);
     procedure ParseObjectGroupObject(Node: IXMLNode; Group: TTmxObjectGroup);
+    procedure ExtractFlipFlags(Gid: Cardinal; Cell: TTmxCell);
+    function ClearFlipFlags(Gid: Cardinal): Cardinal;
   public
     constructor Create;
     destructor Destroy; override;
@@ -62,10 +64,23 @@ resourcestring
   sCompressionMethodNotSupported = 'Compression method "%s" not supported';
   sUnknownEncoding = 'Unknown encoding: %s';
 
+function TTmxMap.ClearFlipFlags(Gid: Cardinal): Cardinal;
+begin
+  Result := Gid and not(FLIPPED_HORIZONTALLY_FLAG or FLIPPED_VERTICALLY_FLAG or
+    FLIPPED_DIAGONALLY_FLAG);
+end;
+
 constructor TTmxMap.Create;
 begin
   FTilesets := TObjectDictionary<Cardinal, TTmxTileset>.Create([doOwnsValues]);
   FLayers := TObjectList<TTmxLayer>.Create(True);
+end;
+
+procedure TTmxMap.ExtractFlipFlags(Gid: Cardinal; Cell: TTmxCell);
+begin
+  Cell.FlippedDiagonaly := (Gid and FLIPPED_DIAGONALLY_FLAG) <> 0;
+  Cell.FlippedHorizontaly := (Gid and FLIPPED_HORIZONTALLY_FLAG) <> 0;
+  Cell.FlippedVerticaly := (Gid and FLIPPED_VERTICALLY_FLAG) <> 0;
 end;
 
 procedure TTmxMap.DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string;
@@ -96,10 +111,13 @@ begin
       begin
         for X := 0 to Layer.Width - 1 do
         begin
+          Gid := BinaryReader.ReadUInt32;
+
           Cell := TTmxCell.Create;
+          ExtractFlipFlags(Gid, Cell);
+          Gid := ClearFlipFlags(Gid);
           Layer.SetCell(Cell, X, Y);
 
-          Gid := BinaryReader.ReadUInt32;
           if Gid <> 0 then
           begin
             Tileset := GetTilesetByGid(Gid);
@@ -136,10 +154,13 @@ begin
       Tokens := List[Y].Split([',']);
       for X := 0 to Layer.Width - 1 do
       begin
+        Gid := Tokens[X].ToInteger;
+
         Cell := TTmxCell.Create;
+        ExtractFlipFlags(Gid, Cell);
+        Gid := ClearFlipFlags(Gid);
         Layer.SetCell(Cell, X, Y);
 
-        Gid := Tokens[X].ToInteger;
         if Gid <> 0 then
         begin
           Tileset := GetTilesetByGid(Gid);
@@ -320,11 +341,8 @@ procedure TTmxMap.ParseObjectGroupObject(Node: IXMLNode;
 var
   Id: Integer;
   TmxObject: TTmxObject;
+  Gid, TileId: Cardinal;
   Tileset: TTmxTileset;
-  TileId: Cardinal;
-  FlippedDiagonaly: Boolean;
-  FlippedHorizontaly: Boolean;
-  FlippedVerticaly: Boolean;
 begin
   Id := Node.Attributes['id'];
   TmxObject := TTmxObject.Create(Id, Group);
@@ -334,22 +352,17 @@ begin
     TmxObject.ObjectType := Node.Attributes['type'];
   if Node.HasAttribute('gid') then
   begin
-    TmxObject.Gid := Node.Attributes['gid'];
+    Gid := Node.Attributes['gid'];
 
-    FlippedDiagonaly := (TmxObject.Gid and FLIPPED_DIAGONALLY_FLAG) <> 0;
-    FlippedHorizontaly := (TmxObject.Gid and FLIPPED_HORIZONTALLY_FLAG) <> 0;
-    FlippedVerticaly := (TmxObject.Gid and FLIPPED_VERTICALLY_FLAG) <> 0;
+    ExtractFlipFlags(Gid, TmxObject.Cell);
+    TmxObject.Gid := ClearFlipFlags(Gid);
 
-    TmxObject.Gid := TmxObject.Gid and not(FLIPPED_HORIZONTALLY_FLAG or
-      FLIPPED_VERTICALLY_FLAG or FLIPPED_DIAGONALLY_FLAG);
-
-    Tileset := GetTilesetByGid(TmxObject.GId);
-    TileId := TmxObject.Gid - Tileset.FirstGId;
-    TmxObject.Cell.SetTile(TileId, Tileset);
-
-    TmxObject.Cell.FlippedDiagonaly := FlippedDiagonaly;
-    TmxObject.Cell.FlippedHorizontaly := FlippedHorizontaly;
-    TmxObject.Cell.FlippedVerticaly := FlippedVerticaly;
+    if TmxObject.Gid <> 0 then
+    begin
+      Tileset := GetTilesetByGid(TmxObject.Gid);
+      TileId := TmxObject.Gid - Tileset.FirstGId;
+      TmxObject.Cell.SetTile(TileId, Tileset);
+    end;
   end;
   TmxObject.X := Node.Attributes['x'];
   TmxObject.Y := Node.Attributes['y'];
@@ -417,8 +430,13 @@ var
   ChildNode: IXMLNode;
 begin
   Id := Node.Attributes['id'];
-  Tile := TTmxTile.Create(Id, Tileset);
-  Tileset.Tiles.Add(Id, Tile);
+  if Tileset.Tiles.ContainsKey(Id) then
+    Tile := Tileset.Tiles[Id]
+  else
+  begin
+    Tile := TTmxTile.Create(Id, Tileset);
+    Tileset.Tiles.Add(Id, Tile);
+  end;
 
   ChildNode := Node.ChildNodes.First;
   while Assigned(ChildNode) do
