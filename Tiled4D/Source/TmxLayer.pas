@@ -7,6 +7,7 @@ type
 
   TTmxLayer = class
   private
+    FId: Integer;
     FLayerType: TTmxLayerType;
     FName: string;
     FX: Integer;
@@ -15,6 +16,7 @@ type
     FOpacity: Single;
   public
     constructor Create(const AName: string); virtual;
+    property Id: Integer read FId write FId;
     property LayerType: TTmxLayerType read FLayerType write FLayerType;
     property Name: string read FName write FName;
     property X: Integer read FX write FX;

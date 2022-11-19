@@ -41,6 +41,8 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure LoadFromFile(const FileName: string);
+    function FindLayerById(Id: Integer): TTmxLayer;
+    function FindObjectById(Id: Integer): TTmxObject;
     property Orientation: string read FOrientation write FOrientation;
     property Width: Integer read FWidth;
     property Height: Integer read FHeight;
@@ -81,6 +83,39 @@ begin
   Cell.FlippedDiagonaly := (Gid and FLIPPED_DIAGONALLY_FLAG) <> 0;
   Cell.FlippedHorizontaly := (Gid and FLIPPED_HORIZONTALLY_FLAG) <> 0;
   Cell.FlippedVerticaly := (Gid and FLIPPED_VERTICALLY_FLAG) <> 0;
+end;
+
+function TTmxMap.FindLayerById(Id: Integer): TTmxLayer;
+var
+  Layer: TTmxLayer;
+begin
+  Result := nil;
+  for Layer in FLayers do
+  begin
+    if Layer.Id = Id then
+      Exit(Layer);
+  end;
+end;
+
+function TTmxMap.FindObjectById(Id: Integer): TTmxObject;
+var
+  Layer: TTmxLayer;
+  Group: TTmxObjectGroup;
+  TmxObject: TTmxObject;
+begin
+  Result := nil;
+  for Layer in FLayers do
+  begin
+    if not (Layer.LayerType = ltObjectGroup) then
+      Continue;
+
+    Group := Layer as TTmxObjectGroup;
+    for TmxObject in Group.Objects do
+    begin
+      if TmxObject.Id = Id then
+        Exit(TmxObject);
+    end;
+  end;
 end;
 
 procedure TTmxMap.DecodeBinaryLayerData(Layer: TTmxTileLayer; Text: string;
@@ -227,6 +262,7 @@ var
 begin
   Name := Node.Attributes['name'];
   Layer := TTmxTileLayer.Create(Name);
+  Layer.Id := Node.Attributes['id'];
   Layer.Width := Node.Attributes['width'];
   Layer.Height := Node.Attributes['height'];
   FLayers.Add(Layer);
@@ -314,8 +350,9 @@ var
 begin
   Name := Node.Attributes['name'];
   ObjectGroup := TTmxObjectGroup.Create(Name);
+  ObjectGroup.Id := Node.Attributes['id'];
   FLayers.Add(ObjectGroup);
-
+  
   if Node.HasAttribute('visible') then
     ObjectGroup.Visible := Node.Attributes['visible']
   else
