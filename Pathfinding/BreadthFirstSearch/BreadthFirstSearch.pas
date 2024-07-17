@@ -64,7 +64,6 @@ begin
         if not FVisited.ContainsKey(Next) then
         begin
           Queue.Enqueue(Next);
-          // Запоминаем откуда пришли к узлу Next
           FVisited.Add(Next, Current);
         end;
       end;
