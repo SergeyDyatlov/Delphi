@@ -9,6 +9,7 @@ uses
 type
   TBreadthFirstSearch<T> = class
   private
+    FComparer: IEqualityComparer<T>;
     FVisited: TDictionary<T, T>;
     function BuildPath(StartNode, EndNode: T): TArray<T>;
   protected
@@ -29,14 +30,11 @@ function TBreadthFirstSearch<T>.BuildPath(StartNode, EndNode: T)
 var
   Path: TList<T>;
   Current: T;
-  Comparer: IEqualityComparer<T>;
 begin
-  Comparer := TEqualityComparer<T>.Default;
-
   Path := TList<T>.Create;
   try
     Current := EndNode;
-    while not Comparer.Equals(Current, StartNode) do
+    while not FComparer.Equals(Current, StartNode) do
     begin
       Path.Insert(0, Current);
       Current := FVisited[Current];
@@ -49,6 +47,7 @@ end;
 
 constructor TBreadthFirstSearch<T>.Create;
 begin
+  FComparer := TEqualityComparer<T>.Default;
   FVisited := TDictionary<T, T>.Create;
 end;
 
@@ -64,10 +63,7 @@ var
   Queue: TQueue<T>;
   Current, Next: T;
   Neighbors: TArray<T>;
-  Comparer: IEqualityComparer<T>;
 begin
-  Comparer := TEqualityComparer<T>.Default;
-
   FVisited.Clear;
   Queue := TQueue<T>.Create;
   try
@@ -77,7 +73,7 @@ begin
     while Queue.Count > 0 do
     begin
       Current := Queue.Dequeue;
-      if Comparer.Equals(StartNode, EndNode) then
+      if FComparer.Equals(StartNode, EndNode) then
         Break;
 
       Neighbors := GetNeighbors(Current);
