@@ -5,10 +5,18 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  System.Generics.Collections, SquareGrid;
+  System.Generics.Collections, SquareGrid, BreadthFirstSearch;
 
 type
-  TSearchPath = TDictionary<TPoint, TPoint>;
+  TPathFinder = class(TBreadthFirstSearch<TPoint>)
+  private
+    FGrid: TSquareGrid;
+  protected
+    function GetNeighbors(Point: TPoint): TArray<TPoint>; override;
+  public
+    constructor Create(AGrid: TSquareGrid);
+    property Grid: TSquareGrid read FGrid;
+  end;
 
   TMainForm = class(TForm)
     procedure FormPaint(Sender: TObject);
@@ -18,12 +26,10 @@ type
       Shift: TShiftState; X, Y: Integer);
   private
     FGrid: TSquareGrid;
-    FSearchPath: TSearchPath;
+    FSearchPath: TArray<TPoint>;
+    FPathFinder: TPathFinder;
     { Private declarations }
     procedure DrawGrid(Canvas: TCanvas; RowCount, ColCount, CellSize: Integer);
-    procedure BreadthFirstSearch(Grid: TSquareGrid;
-      StartPoint, EndPoint: TPoint);
-
   public
     { Public declarations }
   end;
@@ -38,39 +44,6 @@ implementation
 {$R *.dfm}
 
 uses CanvasUtils, System.Types;
-
-procedure TMainForm.BreadthFirstSearch(Grid: TSquareGrid;
-  StartPoint, EndPoint: TPoint);
-var
-  Frontier: TQueue<TPoint>;
-  Current, Next: TPoint;
-  Neighbors: TArray<TPoint>;
-begin
-  FSearchPath.Clear;
-  Frontier := TQueue<TPoint>.Create;
-  try
-    Frontier.Enqueue(StartPoint);
-    FSearchPath.Add(StartPoint, Point(0, 0));
-    while Frontier.Count > 0 do
-    begin
-      Current := Frontier.Dequeue;
-      if Current = EndPoint then
-        Break;
-
-      Neighbors := FGrid.GetNeighbors(Current);
-      for Next in Neighbors do
-      begin
-        if not FSearchPath.ContainsKey(Next) then
-        begin
-          Frontier.Enqueue(Next);
-          FSearchPath.Add(Next, Current - Next);
-        end;
-      end;
-    end;
-  finally
-    Frontier.Free;
-  end;
-end;
 
 procedure TMainForm.DrawGrid(Canvas: TCanvas;
   RowCount, ColCount, CellSize: Integer);
@@ -172,13 +145,13 @@ begin
   FGrid.Walls.Add(Point(6, 3));
   FGrid.Walls.Add(Point(5, 4));
 
-  FSearchPath := TSearchPath.Create;
-  BreadthFirstSearch(FGrid, EndPoint, StartPoint);
+  FPathFinder := TPathFinder.Create(FGrid);
+  FSearchPath := FPathFinder.Search(StartPoint, EndPoint);
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  FSearchPath.Free;
+  FPathFinder.Free;
   FGrid.Free;
 end;
 
@@ -195,7 +168,7 @@ begin
     EndPoint.X := X div TileSize;
     EndPoint.Y := Y div TileSize;
   end;
-  BreadthFirstSearch(FGrid, EndPoint, StartPoint);
+  FSearchPath := FPathFinder.Search(EndPoint, StartPoint);
   Invalidate;
 end;
 
@@ -208,7 +181,7 @@ begin
   FGrid.Draw(Canvas);
 
   Canvas.Brush.Color := clSkyBlue;
-  for Current in FSearchPath.Keys do
+  for Current in FPathFinder.Visited.Keys do
   begin
     X := Current.X * TileSize;
     Y := Current.Y * TileSize;
@@ -219,13 +192,11 @@ begin
   DrawGrid(Canvas, 15, 28, TileSize);
 
   Canvas.Brush.Color := clHighlight;
-  Current := StartPoint + FSearchPath[StartPoint];
-  while Current <> EndPoint do
+  for Current in FSearchPath do
   begin
     X := Current.X * TileSize;
     Y := Current.Y * TileSize;
     Canvas.FillRect(Bounds(X, Y, TileSize, TileSize));
-    Current := Current + FSearchPath[Current];
   end;
 
   Canvas.Brush.Color := clGreen;
@@ -237,6 +208,19 @@ begin
   X := EndPoint.X * TileSize;
   Y := EndPoint.Y * TileSize;
   Canvas.FillRect(Bounds(X, Y, TileSize, TileSize));
+end;
+
+{ TPathFinder }
+
+constructor TPathFinder.Create(AGrid: TSquareGrid);
+begin
+  inherited Create;
+  FGrid := AGrid;
+end;
+
+function TPathFinder.GetNeighbors(Point: TPoint): TArray<TPoint>;
+begin
+  Result := FGrid.GetNeighbors(Point);
 end;
 
 initialization
