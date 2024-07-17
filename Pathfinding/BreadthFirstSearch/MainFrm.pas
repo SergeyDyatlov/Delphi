@@ -168,7 +168,7 @@ begin
     EndPoint.X := X div TileSize;
     EndPoint.Y := Y div TileSize;
   end;
-  FSearchPath := FPathFinder.Search(EndPoint, StartPoint);
+  FSearchPath := FPathFinder.Search(StartPoint, EndPoint);
   Invalidate;
 end;
 

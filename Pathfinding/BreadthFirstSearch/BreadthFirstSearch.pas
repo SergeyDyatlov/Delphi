@@ -37,7 +37,9 @@ begin
     while not FComparer.Equals(Current, StartNode) do
     begin
       Path.Insert(0, Current);
-      Current := FVisited[Current];
+
+      if not FVisited.TryGetValue(Current, Current) then
+        Exit(Path.ToArray);
     end;
     Result := Path.ToArray;
   finally
@@ -73,7 +75,7 @@ begin
     while Queue.Count > 0 do
     begin
       Current := Queue.Dequeue;
-      if FComparer.Equals(StartNode, EndNode) then
+      if FComparer.Equals(Current, EndNode) then
         Break;
 
       Neighbors := GetNeighbors(Current);
