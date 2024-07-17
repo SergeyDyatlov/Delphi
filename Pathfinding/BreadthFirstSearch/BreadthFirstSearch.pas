@@ -12,6 +12,8 @@ type
     function BuildPath(StartNode, EndNode: T): TArray<T>;
     function GetNeighbors(Node: T): TArray<T>; virtual; abstract;
   public
+    constructor Create; virtual;
+    destructor Destroy; override;
     function Search(StartNode, EndNode: T): TArray<T>;
     property Visited: TDictionary<T, T> read FVisited write FVisited;
   end;
@@ -37,6 +39,17 @@ begin
   finally
     Path.Free;
   end;
+end;
+
+constructor TBreadthFirstSearch<T>.Create;
+begin
+  FVisited := TDictionary<T, T>.Create;
+end;
+
+destructor TBreadthFirstSearch<T>.Destroy;
+begin
+  FVisited.Free;
+  inherited;
 end;
 
 function TBreadthFirstSearch<T>.Search(StartNode, EndNode: T)
