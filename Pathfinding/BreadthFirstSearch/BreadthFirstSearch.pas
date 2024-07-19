@@ -7,10 +7,14 @@ uses
   System.Generics.Defaults;
 
 type
+  TNodeEvent<T> = procedure(Sender: TObject; const Node: T) of object;
+
   TBreadthFirstSearch<T> = class
   private
     FComparer: IEqualityComparer<T>;
     FVisited: TDictionary<T, T>;
+    FOnNodeDetected: TNodeEvent<T>;
+    FOnNodeVisited: TNodeEvent<T>;
     function BuildPath(StartNode, EndNode: T): TArray<T>;
   protected
     function GetNeighbors(Node: T): TArray<T>; virtual; abstract;
@@ -19,6 +23,8 @@ type
     destructor Destroy; override;
     function Search(StartNode, EndNode: T): TArray<T>;
     property Visited: TDictionary<T, T> read FVisited write FVisited;
+    property OnNodeDetected: TNodeEvent<T> read FOnNodeDetected write FOnNodeDetected;
+    property OnNodeVisited: TNodeEvent<T> read FOnNodeVisited write FOnNodeVisited;
   end;
 
 implementation
@@ -41,6 +47,7 @@ begin
       if not FVisited.TryGetValue(Current, Current) then
         Exit(Path.ToArray);
     end;
+    Path.Insert(0, StartNode);
     Result := Path.ToArray;
   finally
     Path.Free;
@@ -75,6 +82,10 @@ begin
     while Queue.Count > 0 do
     begin
       Current := Queue.Dequeue;
+
+      if Assigned(FOnNodeVisited) then
+        FOnNodeVisited(Self, Current);
+
       if FComparer.Equals(Current, EndNode) then
         Break;
 
@@ -85,6 +96,9 @@ begin
         begin
           Queue.Enqueue(Next);
           FVisited.Add(Next, Current);
+
+          if Assigned(FOnNodeDetected) then
+            FOnNodeDetected(Self, Next);
         end;
       end;
     end;
